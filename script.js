@@ -124,6 +124,7 @@ const eventsTab = document.querySelector("#eventsTab");
 const eventItemsBody = document.querySelector("#eventItemsBody");
 const eventSummary = document.querySelector("#eventSummary");
 const eventRefreshButton = document.querySelector("#eventRefreshButton");
+const eventClearButton = document.querySelector("#eventClearButton");
 
 function toDate(value) {
   const [year, month, day] = value.split("-").map(Number);
@@ -432,16 +433,50 @@ function renderEvents() {
   eventItemsBody.innerHTML = events.length
     ? events
         .map((event) => `
-          <tr>
+          <tr data-event-id="${escapeHtml(event.id || "")}">
             <td>${escapeHtml(formatEventTime(event.createdAt))}</td>
             <td>
               <span class="event-type event-type-${escapeHtml(event.type || "general")}">${escapeHtml(event.title || "Event")}</span>
             </td>
             <td>${escapeHtml(event.details || "")}</td>
+            <td><button class="event-delete-button" type="button" data-event-id="${escapeHtml(event.id || "")}">Clear</button></td>
           </tr>
         `)
         .join("")
-    : `<tr><td colspan="3" class="event-empty">No events recorded yet.</td></tr>`;
+    : `<tr><td colspan="4" class="event-empty">No events recorded yet.</td></tr>`;
+}
+
+async function saveEventLog() {
+  localStorage.setItem(EVENT_LOG_STORAGE_KEY, JSON.stringify(eventLog));
+  if (window.OtagoSharedStore?.isReady) {
+    await window.OtagoSharedStore.save(EVENT_LOG_STORAGE_KEY, eventLog);
+  }
+  renderEvents();
+}
+
+async function clearEventRecord(eventId) {
+  if (!eventId) return;
+  eventLog = {
+    events: (eventLog.events || []).filter((event) => event.id !== eventId),
+  };
+  try {
+    await saveEventLog();
+  } catch (error) {
+    console.warn("Could not clear event record", error);
+  }
+}
+
+async function clearAllEvents() {
+  const count = (eventLog.events || []).length;
+  eventLog = { events: [] };
+  try {
+    await saveEventLog();
+    if (count > 0) {
+      await recordEvent("general", "Events cleared", `${count} event record${count === 1 ? "" : "s"} cleared`);
+    }
+  } catch (error) {
+    console.warn("Could not clear all events", error);
+  }
 }
 
 function reviveVesselRow(row) {
@@ -1412,6 +1447,11 @@ monthSelect.addEventListener("change", () => {
 });
 printItemsButton.addEventListener("click", () => window.print());
 eventRefreshButton.addEventListener("click", () => refreshEventLog());
+eventClearButton.addEventListener("click", () => clearAllEvents());
+eventItemsBody.addEventListener("click", (event) => {
+  const button = event.target.closest(".event-delete-button");
+  if (button) clearEventRecord(button.dataset.eventId);
+});
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => switchTab(button.dataset.tab));
 });

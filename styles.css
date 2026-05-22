@@ -201,11 +201,23 @@ h1 {
 }
 
 .print-button,
-.event-refresh-button {
+.event-refresh-button,
+.event-clear-button {
   background: linear-gradient(135deg, var(--navy), var(--teal));
   border-color: transparent;
   color: #ffffff;
   min-width: 82px;
+}
+
+.event-clear-button {
+  background: linear-gradient(135deg, #8f2f2f, #c65f22);
+}
+
+.event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .print-panel h2,
@@ -303,6 +315,28 @@ h1 {
 .event-table th:nth-child(2),
 .event-table td:nth-child(2) {
   width: 210px;
+}
+
+.event-table th:last-child,
+.event-table td:last-child {
+  text-align: center;
+  width: 130px;
+}
+
+.event-delete-button {
+  background: #fff5f2;
+  border: 1px solid #edb6a5;
+  border-radius: 999px;
+  color: #a33a2b;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 26px;
+  padding: 0 10px;
+}
+
+.event-delete-button:hover {
+  background: #ffe9e3;
+  border-color: #d78068;
 }
 
 .event-type {

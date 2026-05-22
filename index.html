@@ -193,7 +193,10 @@
               <p class="eyebrow">Shared recorder</p>
               <h2>Events</h2>
             </div>
-            <button class="event-refresh-button" id="eventRefreshButton" type="button">Refresh</button>
+            <div class="event-actions">
+              <button class="event-refresh-button" id="eventRefreshButton" type="button">Refresh</button>
+              <button class="event-clear-button" id="eventClearButton" type="button">Clear All Events</button>
+            </div>
             <div class="event-summary" id="eventSummary"></div>
           </header>
           <div class="event-table-wrap">
@@ -203,6 +206,7 @@
                   <th>Date & Time</th>
                   <th>Event</th>
                   <th>Details</th>
+                  <th>Clear Record</th>
                 </tr>
               </thead>
               <tbody id="eventItemsBody"></tbody>
