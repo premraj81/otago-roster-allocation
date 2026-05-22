@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fiordland Vessel Calendar</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Cruise season 2026-27</p>
+          <h1>Fiordland Vessel Calendar</h1>
+        </div>
+        <div class="upload-panel">
+          <label class="file-button" for="fileInput">Upload Excel</label>
+          <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+          <button id="resetButton" class="ghost-button" type="button">Reset saved changes</button>
+          <span id="fileStatus">Preloaded from Pilotage 2026-27 sheet</span>
+        </div>
+      </header>
+
+      <section class="controls" aria-label="Calendar controls">
+        <label>
+          Search vessel or port
+          <input id="searchInput" type="search" placeholder="Celebrity, Milford, Bluff..." />
+        </label>
+        <label>
+          Month
+          <select id="monthFilter"></select>
+        </label>
+        <label>
+          Route
+          <select id="routeFilter">
+            <option value="all">All routes</option>
+            <option value="North Bound">North Bound</option>
+            <option value="South Bound">South Bound</option>
+            <option value="Bluff">Bluff</option>
+            <option value="Lyttelton/Timaru">Lyttelton/Timaru</option>
+            <option value="Unclassified">Unclassified</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="summary-grid" aria-label="Calendar summary">
+        <article>
+          <span id="totalShips">0</span>
+          <p>Vessel entries</p>
+        </article>
+        <article>
+          <span id="warningCount">0</span>
+          <p>Warnings to review</p>
+        </article>
+        <article>
+          <span id="busyDays">0</span>
+          <p>Days with ships</p>
+        </article>
+        <article>
+          <span>01 Oct - 30 Apr</span>
+          <p>Calendar window</p>
+        </article>
+      </section>
+
+      <section class="warnings-section" aria-labelledby="warningsTitle">
+        <button id="warningsToggle" class="section-toggle" type="button" aria-expanded="true">
+          <span id="warningsTitle">Warnings</span>
+          <span id="warningsToggleText">Hide</span>
+        </button>
+        <div id="warningsPanel" class="warnings-list"></div>
+      </section>
+
+      <section id="editSection" class="edit-section hidden" aria-labelledby="editTitle">
+        <div class="edit-header">
+          <div>
+            <p class="eyebrow">Selected vessel</p>
+            <h2 id="editTitle">Edit vessel details</h2>
+          </div>
+          <button id="closeEditButton" class="ghost-button" type="button">Close</button>
+        </div>
+        <form id="editForm" class="edit-form">
+          <label>Vessel name<input id="editVessel" type="text" /></label>
+          <label>Fiordland ETA date<input id="editEtaDate" type="date" /></label>
+          <label>ETA time<input id="editEtaTime" type="time" /></label>
+          <label>Fiordland ETD date<input id="editEtdDate" type="date" /></label>
+          <label>ETD time<input id="editEtdTime" type="time" /></label>
+          <label>Embark port<input id="editEmbark" type="text" /></label>
+          <label>Embark date<input id="editEmbarkDate" type="date" /></label>
+          <label>Disembark port<input id="editDisembark" type="text" /></label>
+          <label>Disembark date<input id="editDisembarkDate" type="date" /></label>
+          <label>From / To<input id="editFromTo" type="text" /></label>
+          <label>Stewart Island<input id="editStewartIsland" type="text" /></label>
+          <label class="wide-field">Comments<textarea id="editComments" rows="3"></textarea></label>
+          <div class="edit-actions">
+            <button type="submit">Save update</button>
+            <button id="cancelEditButton" class="ghost-button" type="button">Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="calendar-card" aria-label="Vessel calendar">
+        <div class="calendar-table-wrap">
+          <table class="calendar-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>North Bound</th>
+                <th>South Bound</th>
+                <th>Bluff</th>
+                <th>Lyttelton/Timaru</th>
+                <th>Unclassified</th>
+                <th>Comments</th>
+              </tr>
+            </thead>
+            <tbody id="calendarBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./initial-data.js"></script>
+    <script src="./app.js?v=20260522-nb-date"></script>
+  </body>
+</html>

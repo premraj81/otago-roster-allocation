@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Otago Pilot Roster 2026-27</title>
+    <link rel="stylesheet" href="styles.css?v=20260523-print-items-route-print-16" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Otago Roster Allocation</p>
+          <h1>Pilot Roster 2026-27</h1>
+        </div>
+        <div class="toolbar" aria-label="Roster controls">
+          <label>
+            Season
+            <select id="seasonSelect"></select>
+          </label>
+          <label>
+            Month
+            <select id="monthSelect"></select>
+          </label>
+        </div>
+      </header>
+
+      <nav class="tabs" aria-label="Application tabs">
+        <button class="tab-button active" type="button" data-tab="roster">Roster + Vessels</button>
+        <button class="tab-button" type="button" data-tab="agent">Agent File</button>
+        <button class="tab-button" type="button" data-tab="polCruise">POL Cruise Ships Count</button>
+        <button class="tab-button" type="button" data-tab="printItems">Print Items</button>
+      </nav>
+
+      <section class="tab-panel active" id="rosterTab">
+        <section class="table-shell" aria-label="Roster table with ships rostered">
+          <table id="rosterTable">
+            <thead>
+              <tr class="title-row">
+                <th class="roster-title" colspan="11">Port Otago Roster</th>
+                <th class="date-title">Date</th>
+                <th class="ship-title" colspan="4">Fiordland Vessel</th>
+              </tr>
+              <tr class="tracker-row">
+                <th class="tracker-label">RDO's</th>
+                <th data-rdo="TL">0</th>
+                <th data-rdo="SY">0</th>
+                <th data-rdo="SS">0</th>
+                <th data-rdo="JC">0</th>
+                <th data-rdo="LC">0</th>
+                <th data-rdo="PP">0</th>
+                <th data-rdo="JO">0</th>
+                <th data-rdo="AKF">0</th>
+                <th data-rdo="WT">0</th>
+                <th class="pol-col"></th>
+                <th class="date-col tracker-date" rowspan="6"></th>
+                <th class="ship-note" colspan="4" rowspan="6" id="shippingSummary">
+                  <div class="shipping-summary-title">Fiordland Shipping Schedule</div>
+                </th>
+              </tr>
+              <tr class="tracker-row">
+                <th class="tracker-label">NB</th>
+                <td data-track="NB" data-pilot="TL">0</td>
+                <td data-track="NB" data-pilot="SY">0</td>
+                <td data-track="NB" data-pilot="SS">0</td>
+                <td data-track="NB" data-pilot="JC">0</td>
+                <td data-track="NB" data-pilot="LC">0</td>
+                <td data-track="NB" data-pilot="PP">0</td>
+                <td data-track="NB" data-pilot="JO">0</td>
+                <td data-track="NB" data-pilot="AKF">0</td>
+                <td data-track="NB" data-pilot="WT">0</td>
+                <th class="pol-col"></th>
+              </tr>
+              <tr class="tracker-row">
+                <th class="tracker-label">SB</th>
+                <td data-track="SB" data-pilot="TL">0</td>
+                <td data-track="SB" data-pilot="SY">0</td>
+                <td data-track="SB" data-pilot="SS">0</td>
+                <td data-track="SB" data-pilot="JC">0</td>
+                <td data-track="SB" data-pilot="LC">0</td>
+                <td data-track="SB" data-pilot="PP">0</td>
+                <td data-track="SB" data-pilot="JO">0</td>
+                <td data-track="SB" data-pilot="AKF">0</td>
+                <td data-track="SB" data-pilot="WT">0</td>
+                <th class="pol-col"></th>
+              </tr>
+              <tr class="tracker-row">
+                <th class="tracker-label">Stewart Island</th>
+                <td data-track="STEWART" data-pilot="TL">0</td>
+                <td data-track="STEWART" data-pilot="SY">0</td>
+                <td data-track="STEWART" data-pilot="SS">0</td>
+                <td data-track="STEWART" data-pilot="JC">0</td>
+                <td data-track="STEWART" data-pilot="LC">0</td>
+                <td data-track="STEWART" data-pilot="PP">0</td>
+                <td data-track="STEWART" data-pilot="JO">0</td>
+                <td data-track="STEWART" data-pilot="AKF">0</td>
+                <td data-track="STEWART" data-pilot="WT">0</td>
+                <th class="pol-col"></th>
+              </tr>
+              <tr class="tracker-row total-ship-row">
+                <th class="tracker-label">Total Ship</th>
+                <td data-track="TOTAL_SHIP" data-pilot="TL">0</td>
+                <td data-track="TOTAL_SHIP" data-pilot="SY">0</td>
+                <td data-track="TOTAL_SHIP" data-pilot="SS">0</td>
+                <td data-track="TOTAL_SHIP" data-pilot="JC">0</td>
+                <td data-track="TOTAL_SHIP" data-pilot="LC">0</td>
+                <td data-track="TOTAL_SHIP" data-pilot="PP">0</td>
+                <td data-track="TOTAL_SHIP" data-pilot="JO">0</td>
+                <td data-track="TOTAL_SHIP" data-pilot="AKF">0</td>
+                <td data-track="TOTAL_SHIP" data-pilot="WT">0</td>
+                <th class="pol-col"></th>
+              </tr>
+              <tr class="tracker-row">
+                <th class="tracker-label">Total</th>
+                <td data-total="TL">0</td>
+                <td data-total="SY">0</td>
+                <td data-total="SS">0</td>
+                <td data-total="JC">0</td>
+                <td data-total="LC">0</td>
+                <td data-total="PP">0</td>
+                <td data-total="JO">0</td>
+                <td data-total="AKF">0</td>
+                <td data-total="WT">0</td>
+                <th class="pol-col"></th>
+              </tr>
+              <tr class="group-row">
+                <th class="count-col" rowspan="2">Pilots in POL</th>
+                <th class="roster-one" colspan="4">Pilot Roster 1</th>
+                <th class="floating-col">LC Floating</th>
+                <th class="roster-two" colspan="3">Pilot Roster 2</th>
+                <th class="fiords-col">Fiords</th>
+                <th class="pol-col">POL Cruis</th>
+                <th class="date-col" rowspan="2">Date</th>
+                <th class="ship-head" rowspan="2">North Bound <span>(from Dunedin / PC)</span></th>
+                <th class="ship-head" rowspan="2">South Bound <span>(Milford)</span></th>
+                <th class="ship-head" rowspan="2">Unspecified</th>
+                <th class="ship-head" rowspan="2">Comments</th>
+              </tr>
+              <tr id="pilotHeader"></tr>
+            </thead>
+            <tbody id="rosterBody"></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="agentTab">
+        <iframe
+          class="agent-frame"
+          title="Agent file vessel calendar"
+          src="agent-file/index.html?v=20260522-nb-embark-date"
+        ></iframe>
+      </section>
+
+      <section class="tab-panel" id="polCruiseTab">
+        <iframe
+          class="agent-frame"
+          title="POL cruise ships count"
+          src="pol-cruise/index.html?v=20260522-pol-count-export"
+        ></iframe>
+      </section>
+
+      <section class="tab-panel" id="printItemsTab">
+        <section class="print-panel" aria-label="Printable vessel allocation list">
+          <header class="print-panel-head">
+            <div>
+              <p class="eyebrow">Fiordland allocation</p>
+              <h2>Print Items</h2>
+            </div>
+            <button class="print-button" id="printItemsButton" type="button">Print</button>
+            <div class="print-summary" id="printSummary"></div>
+          </header>
+          <div class="print-table-wrap">
+            <table class="print-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Vessel Name</th>
+                  <th>From / To</th>
+                  <th>Company</th>
+                </tr>
+              </thead>
+              <tbody id="printItemsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
+    <script src="script.js?v=20260523-print-items-route-print-16"></script>
+  </body>
+</html>
