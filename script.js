@@ -49,7 +49,6 @@ const pilots = [
     start: "2026-10-02",
     onDays: 7,
     offDays: 7,
-    extraOptions: ["LAC"],
   },
   {
     code: "PP",
@@ -458,7 +457,7 @@ function buildSeasonSelect() {
   seasonStarts.forEach((startYear, index) => {
     const option = document.createElement("option");
     option.value = String(startYear);
-    option.textContent = `${index === 0 ? "This year " : index === 1 ? "Next year " : ""}${seasonLabel(startYear)}`;
+    option.textContent = seasonLabel(startYear);
     seasonSelect.appendChild(option);
   });
   seasonSelect.value = String(selectedSeasonStart);

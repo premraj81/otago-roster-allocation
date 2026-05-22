@@ -58,8 +58,6 @@ let sharedCruiseRefreshInFlight = false;
 const els = {
   fileInput: document.querySelector("#fileInput"),
   dropZone: document.querySelector("#dropZone"),
-  rawText: document.querySelector("#rawText"),
-  parseTextBtn: document.querySelector("#parseTextBtn"),
   statusText: document.querySelector("#statusText"),
   recordCount: document.querySelector("#recordCount"),
   ocrProgress: document.querySelector("#ocrProgress"),
@@ -761,7 +759,6 @@ async function handleFiles(files) {
       combinedText += `\n${await extractTextFromFile(accepted[index], index, accepted.length)}`;
     }
 
-    els.rawText.value = combinedText.trim();
     const parsed = parseScheduleText(combinedText);
     const added = mergeRecords(parsed);
     setStatus(`Finished. Added ${added} cruise movement row${added === 1 ? "" : "s"}.`, 100);
@@ -770,13 +767,6 @@ async function handleFiles(files) {
     console.error(error);
     setStatus("Could not read that file. Try pasting the extracted text into the box.", 0);
   }
-}
-
-function parseManualText() {
-  const parsed = parseScheduleText(els.rawText.value);
-  const added = mergeRecords(parsed);
-  setStatus(`Parsed text. Added ${added} cruise movement row${added === 1 ? "" : "s"}.`, 100);
-  render();
 }
 
 function exportCsv() {
@@ -806,14 +796,12 @@ function exportCsv() {
 
 function clearAll() {
   state.records = [];
-  els.rawText.value = "";
   els.fileInput.value = "";
   setStatus("Ready for upload.", 0);
   render();
 }
 
 els.fileInput.addEventListener("change", (event) => handleFiles(event.target.files));
-els.parseTextBtn.addEventListener("click", parseManualText);
 els.exportCsvBtn.addEventListener("click", exportCsv);
 els.clearBtn.addEventListener("click", clearAll);
 

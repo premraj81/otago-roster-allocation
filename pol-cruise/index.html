@@ -14,24 +14,17 @@
     <main class="app-shell">
       <header class="suite-header">
         <div>
-          <p class="eyebrow">Port Otago cruise tools</p>
-          <h1>Ship Count Calendar</h1>
+          <p class="eyebrow">Ship count calendar</p>
+          <h1>Port Otago Cruise Ship Number</h1>
+        </div>
+        <div class="actions">
+          <button id="exportCsvBtn" type="button" class="secondary-btn">Export CSV</button>
+          <button id="clearBtn" type="button" class="ghost-btn">Clear</button>
         </div>
       </header>
 
       <section id="calendarPanel" class="tab-panel active" role="tabpanel" aria-labelledby="calendarTitle">
         <div class="workspace">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Cruise cargo only</p>
-            <h2 id="calendarTitle">Ship Count Calendar</h2>
-          </div>
-          <div class="actions">
-            <button id="exportCsvBtn" type="button" class="secondary-btn">Export CSV</button>
-            <button id="clearBtn" type="button" class="ghost-btn">Clear</button>
-          </div>
-        </header>
-
         <section class="import-panel" aria-label="Upload schedule documents">
           <label id="dropZone" class="drop-zone" for="fileInput">
             <input id="fileInput" type="file" accept=".jpg,.jpeg,.png,.pdf" multiple />
@@ -39,12 +32,6 @@
             <span class="upload-title">Upload documents in PDF or JPG file</span>
             <span class="upload-copy">The app reads the schedule, keeps rows marked CRUISE, and builds the daily ship count.</span>
           </label>
-
-          <div class="manual-import">
-            <label for="rawText">Paste extracted text</label>
-            <textarea id="rawText" rows="6" spellcheck="false" placeholder="Example: CRUISE 06:00 Wed 21 Oct 2026 Celebrity Edge Arrival"></textarea>
-            <button id="parseTextBtn" type="button" class="primary-btn">Parse Text</button>
-          </div>
         </section>
 
         <section class="status-panel" aria-live="polite">

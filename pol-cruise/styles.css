@@ -128,14 +128,15 @@ h2 {
 }
 
 .import-panel {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
-  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.import-panel,
+.drop-zone {
   margin-bottom: 14px;
 }
 
 .drop-zone,
-.manual-import,
 .status-panel,
 .summary-strip,
 .table-wrap {
@@ -196,27 +197,6 @@ h2 {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.45;
-}
-
-.manual-import {
-  display: grid;
-  gap: 10px;
-  padding: 18px;
-}
-
-.manual-import label {
-  font-weight: 800;
-}
-
-textarea {
-  width: 100%;
-  min-height: 130px;
-  resize: vertical;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px;
-  color: var(--ink);
-  background: #fbfcfb;
 }
 
 textarea:focus {
