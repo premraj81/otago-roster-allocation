@@ -206,7 +206,7 @@ h1 {
   border-radius: 10px;
   box-shadow: var(--shadow);
   margin: 0 auto;
-  max-width: 1100px;
+  max-width: 1460px;
   overflow: hidden;
 }
 
@@ -302,6 +302,54 @@ h1 {
   overflow: auto;
 }
 
+.records-layout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-height: 420px;
+}
+
+.records-side-tabs {
+  background: linear-gradient(180deg, #f7fafb, #edf3f5);
+  border-right: 1px solid #d8e0e8;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 12px;
+}
+
+.record-tab {
+  background: #ffffff;
+  border: 1px solid #cbd6df;
+  border-radius: 10px;
+  color: var(--navy);
+  min-height: 38px;
+  text-align: left;
+}
+
+.record-tab.active {
+  background: linear-gradient(135deg, var(--navy), var(--teal));
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.pilot-record-picker {
+  display: none;
+  margin-top: 8px;
+}
+
+.pilot-record-picker.active {
+  display: grid;
+}
+
+.record-view {
+  display: none;
+  min-width: 0;
+}
+
+.record-view.active {
+  display: block;
+}
+
 .print-table,
 .event-table {
   border-collapse: separate;
@@ -336,6 +384,22 @@ h1 {
 .print-table td,
 .event-table td {
   font-size: 13px;
+}
+
+.pilot-record-table th,
+.pilot-record-table td {
+  min-width: 170px;
+}
+
+.pilot-record-table th:first-child,
+.pilot-record-table td:first-child {
+  min-width: 220px;
+}
+
+.record-empty {
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center !important;
 }
 
 .event-table th:first-child,
@@ -453,6 +517,22 @@ h1 {
   .print-table-wrap {
     max-height: none;
     overflow: visible;
+  }
+
+  .records-layout {
+    display: block;
+  }
+
+  .records-side-tabs {
+    display: none;
+  }
+
+  .record-view {
+    display: none !important;
+  }
+
+  .record-view.active {
+    display: block !important;
   }
 
   .print-table th {

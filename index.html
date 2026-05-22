@@ -34,7 +34,7 @@
         <button class="tab-button active" type="button" data-tab="roster">Roster</button>
         <button class="tab-button" type="button" data-tab="agent">Agent Data</button>
         <button class="tab-button" type="button" data-tab="polCruise">POL Cruise Numbers</button>
-        <button class="tab-button" type="button" data-tab="printItems">Print Items</button>
+        <button class="tab-button" type="button" data-tab="printItems">Records</button>
         <button class="tab-button" type="button" data-tab="events">Events</button>
       </nav>
 
@@ -166,27 +166,55 @@
       </section>
 
       <section class="tab-panel" id="printItemsTab">
-        <section class="print-panel" aria-label="Printable vessel allocation list">
+        <section class="print-panel" aria-label="Printable records">
           <header class="print-panel-head">
             <div>
               <p class="eyebrow">Fiordland allocation</p>
-              <h2>Print Items</h2>
+              <h2>Records</h2>
             </div>
             <button class="print-button" id="printItemsButton" type="button">Print</button>
             <div class="print-summary" id="printSummary"></div>
           </header>
-          <div class="print-table-wrap">
-            <table class="print-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Vessel Name</th>
-                  <th>From / To</th>
-                  <th>Company</th>
-                </tr>
-              </thead>
-              <tbody id="printItemsBody"></tbody>
-            </table>
+          <div class="records-layout">
+            <aside class="records-side-tabs" aria-label="Record views">
+              <button class="record-tab active" type="button" data-record-view="vessels">Vessel Records</button>
+              <button class="record-tab" type="button" data-record-view="pilots">Pilot Records</button>
+              <label class="pilot-record-picker">
+                Pilot
+                <select id="pilotRecordSelect"></select>
+              </label>
+            </aside>
+            <div class="record-view active" id="vesselRecordsView">
+              <div class="print-table-wrap">
+                <table class="print-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Vessel Name</th>
+                      <th>From / To</th>
+                      <th>Company</th>
+                    </tr>
+                  </thead>
+                  <tbody id="printItemsBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="record-view" id="pilotRecordsView">
+              <div class="print-table-wrap">
+                <table class="print-table pilot-record-table">
+                  <thead>
+                    <tr>
+                      <th>Vessel Name</th>
+                      <th>Embark Place &amp; Date</th>
+                      <th>Date at Fiordland</th>
+                      <th>Disembark Place</th>
+                      <th>Disembark Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pilotRecordsBody"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
       </section>

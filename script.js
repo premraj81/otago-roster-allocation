@@ -120,6 +120,11 @@ const printItemsTab = document.querySelector("#printItemsTab");
 const printItemsBody = document.querySelector("#printItemsBody");
 const printSummary = document.querySelector("#printSummary");
 const printItemsButton = document.querySelector("#printItemsButton");
+const recordTabs = document.querySelectorAll(".record-tab");
+const vesselRecordsView = document.querySelector("#vesselRecordsView");
+const pilotRecordsView = document.querySelector("#pilotRecordsView");
+const pilotRecordSelect = document.querySelector("#pilotRecordSelect");
+const pilotRecordsBody = document.querySelector("#pilotRecordsBody");
 const eventsTab = document.querySelector("#eventsTab");
 const eventItemsBody = document.querySelector("#eventItemsBody");
 const eventSummary = document.querySelector("#eventSummary");
@@ -945,6 +950,85 @@ function renderPrintItems() {
     <span>South Port <strong>${stats.southPort}</strong> <em>${southPercent}%</em></span>
     ${warnings.length ? `<span class="print-warning">${warnings.map(escapeHtml).join(" | ")}</span>` : ""}
   `;
+  renderPilotRecords();
+}
+
+function buildPilotRecordSelect() {
+  pilotRecordSelect.innerHTML = pilots
+    .map((pilot) => `<option value="${pilot.code}">${pilot.code} - ${escapeHtml(pilot.name)}</option>`)
+    .join("");
+}
+
+function renderPilotRecords() {
+  const pilotCode = pilotRecordSelect.value || pilots[0]?.code || "";
+  const items = pilotRecordItems(pilotCode);
+  const pilot = pilots.find((item) => item.code === pilotCode);
+
+  pilotRecordsBody.innerHTML = items.length
+    ? items
+        .map((item) => `
+          <tr>
+            <td>${escapeHtml(item.vessel)}</td>
+            <td>${escapeHtml(item.embark)}</td>
+            <td>${escapeHtml(item.fiordlandDate)}</td>
+            <td>${escapeHtml(item.disembarkPlace)}</td>
+            <td>${escapeHtml(item.disembarkDate)}</td>
+          </tr>
+        `)
+        .join("")
+    : `<tr><td colspan="5" class="record-empty">No Fiordland vessel records for ${escapeHtml(pilot?.code || "this pilot")}.</td></tr>`;
+
+  if (pilotRecordsView.classList.contains("active")) {
+    printSummary.innerHTML = `
+      <span>Pilot <strong>${escapeHtml(pilot?.code || "-")}</strong></span>
+      <span>Vessels <strong>${items.length}</strong></span>
+    `;
+  }
+}
+
+function pilotRecordItems(pilotCode) {
+  return vesselRows
+    .filter((row) => vesselPilotsForRow(row).includes(pilotCode))
+    .map((row) => {
+      const rosterDate = shipRosterDate(row);
+      if (!vesselClean(row.vessel) || !rosterDate || rosterDate < rosterStart || rosterDate > rosterEnd) {
+        return null;
+      }
+
+      return {
+        vessel: row.vessel || "Unnamed vessel",
+        embark: [vesselClean(row.embark) || "-", formatRecordDate(row.embarkDate, rosterDate)].filter(Boolean).join(" - "),
+        fiordlandDate: formatRecordDate(row.etaFiordland, rosterDate) || "-",
+        disembarkPlace: vesselClean(row.disembark) || "-",
+        disembarkDate: formatRecordDate(row.disembarkDate) || "-",
+        sortDate: rosterDate,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.sortDate - b.sortDate || a.vessel.localeCompare(b.vessel));
+}
+
+function formatRecordDate(value, fallback = null) {
+  if (!value && !fallback) return "";
+  const date = dateOnly(new Date(value));
+  const validDate = !Number.isNaN(date.getTime()) && date >= rosterStart && date <= rosterEnd
+    ? date
+    : fallback
+      ? dateOnly(new Date(fallback))
+      : null;
+  return validDate && !Number.isNaN(validDate.getTime()) ? formatDate(validDate) : "";
+}
+
+function switchRecordView(view) {
+  const showPilots = view === "pilots";
+  recordTabs.forEach((button) => {
+    button.classList.toggle("active", button.dataset.recordView === view);
+  });
+  vesselRecordsView.classList.toggle("active", !showPilots);
+  pilotRecordsView.classList.toggle("active", showPilots);
+  pilotRecordSelect.closest(".pilot-record-picker").classList.toggle("active", showPilots);
+  if (showPilots) renderPilotRecords();
+  else renderPrintItems();
 }
 
 function shippingAllocationStats() {
@@ -1446,6 +1530,10 @@ monthSelect.addEventListener("change", () => {
   scrollToDate(monthSelect.value);
 });
 printItemsButton.addEventListener("click", () => window.print());
+recordTabs.forEach((button) => {
+  button.addEventListener("click", () => switchRecordView(button.dataset.recordView));
+});
+pilotRecordSelect.addEventListener("change", renderPilotRecords);
 eventRefreshButton.addEventListener("click", () => refreshEventLog());
 eventClearButton.addEventListener("click", () => clearAllEvents());
 eventItemsBody.addEventListener("click", (event) => {
@@ -1492,6 +1580,7 @@ rosterBody.addEventListener("click", (event) => {
 });
 
 buildHeader();
+buildPilotRecordSelect();
 buildSeasonSelect();
 updateSeasonTitle();
 buildMonthSelect();
