@@ -126,6 +126,9 @@ const pilotRecordsView = document.querySelector("#pilotRecordsView");
 const pilotRecordSelect = document.querySelector("#pilotRecordSelect");
 const pilotRecordsBody = document.querySelector("#pilotRecordsBody");
 const eventsTab = document.querySelector("#eventsTab");
+const workbookTab = document.querySelector("#workbookTab");
+const workbookBody = document.querySelector("#workbookBody");
+const workbookSummary = document.querySelector("#workbookSummary");
 const eventItemsBody = document.querySelector("#eventItemsBody");
 const eventSummary = document.querySelector("#eventSummary");
 const eventRefreshButton = document.querySelector("#eventRefreshButton");
@@ -1031,6 +1034,79 @@ function switchRecordView(view) {
   else renderPrintItems();
 }
 
+function renderWorkbook() {
+  const rows = workbookItems();
+  workbookSummary.textContent = `${rows.length} workbook row${rows.length === 1 ? "" : "s"}`;
+  workbookBody.innerHTML = rows.length
+    ? rows
+        .map((row) => `
+          <tr>
+            <td>${escapeHtml(row.status)}</td>
+            <td>${escapeHtml(row.vessel)}</td>
+            <td>${escapeHtml(row.company)}</td>
+            <td>${escapeHtml(row.embarkPlace)}</td>
+            <td>${escapeHtml(row.embarkDate)}</td>
+            <td>${escapeHtml(row.milfordDate)}</td>
+            <td>${escapeHtml(row.disembarkPlace)}</td>
+            <td>${escapeHtml(row.disembarkDate)}</td>
+            <td>${escapeHtml(row.service)}</td>
+            <td>${escapeHtml(row.pilot)}</td>
+            <td>${escapeHtml(row.trainee)}</td>
+            <td>${escapeHtml(row.stewartIsland)}</td>
+            <td>${escapeHtml(row.lecturer)}</td>
+            <td>${escapeHtml(row.driver)}</td>
+            <td>${escapeHtml(row.mhDays)}</td>
+            <td>${escapeHtml(row.launch)}</td>
+            <td>${escapeHtml(row.actions)}</td>
+          </tr>
+        `)
+        .join("")
+    : `<tr><td colspan="17" class="workbook-empty">No workbook rows available.</td></tr>`;
+}
+
+function workbookItems() {
+  return vesselRows
+    .map((row) => {
+      const rosterDate = shipRosterDate(row);
+      if (!vesselClean(row.vessel) && !rosterDate) return null;
+      const pilotsForRow = vesselPilotsForRow(row).filter((code) => code !== SOUTH_PORT_ALLOCATION);
+      return {
+        status: vesselClean(row.status),
+        vessel: vesselClean(row.vessel),
+        company: vesselClean(row.company),
+        embarkPlace: vesselClean(row.embark),
+        embarkDate: workbookDate(row.embarkDate, rosterDate),
+        milfordDate: workbookDate(row.etaFiordland, rosterDate),
+        disembarkPlace: vesselClean(row.disembark),
+        disembarkDate: workbookDate(row.disembarkDate),
+        service: vesselClean(row.service),
+        pilot: vesselClean(row.pilot) || pilotsForRow.join(", "),
+        trainee: vesselClean(row.trainee),
+        stewartIsland: vesselClean(row.stewartIsland),
+        lecturer: vesselClean(row.lecturer),
+        driver: vesselClean(row.driver),
+        mhDays: vesselClean(row.mhDays),
+        launch: vesselClean(row.launch),
+        actions: vesselClean(row.actions),
+        sortDate: rosterDate || row.etaFiordland || row.embarkDate || row.disembarkDate || new Date(8640000000000000),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.sortDate - b.sortDate || a.vessel.localeCompare(b.vessel));
+}
+
+function workbookDate(value, fallback = null) {
+  if (!value && !fallback) return "";
+  const date = new Date(value);
+  const normalized = dateOnly(date);
+  const validDate = !Number.isNaN(normalized.getTime()) && normalized >= rosterStart && normalized <= rosterEnd
+    ? normalized
+    : fallback
+      ? dateOnly(new Date(fallback))
+      : null;
+  return validDate && !Number.isNaN(validDate.getTime()) ? formatShortDate(validDate) : "";
+}
+
 function shippingAllocationStats() {
   const stats = { total: 0, portOtago: 0, southPort: 0 };
 
@@ -1510,8 +1586,9 @@ function scrollToDate(key) {
 }
 
 function switchTab(tabName) {
-  if (tabName === "roster" || tabName === "printItems") refreshVesselRowsFromAgent();
+  if (tabName === "roster" || tabName === "printItems" || tabName === "workbook") refreshVesselRowsFromAgent();
   if (tabName === "printItems") renderPrintItems();
+  if (tabName === "workbook") renderWorkbook();
   if (tabName === "events") refreshEventLog();
   tabButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === tabName);
@@ -1520,6 +1597,7 @@ function switchTab(tabName) {
   agentTab.classList.toggle("active", tabName === "agent");
   polCruiseTab.classList.toggle("active", tabName === "polCruise");
   printItemsTab.classList.toggle("active", tabName === "printItems");
+  workbookTab.classList.toggle("active", tabName === "workbook");
   eventsTab.classList.toggle("active", tabName === "events");
 }
 

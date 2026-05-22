@@ -516,26 +516,62 @@ function buildMonthFilter() {
   els.monthFilter.innerHTML = options.join("");
 }
 
+function headerMap(headers) {
+  const map = new Map();
+  headers.forEach((header, index) => {
+    const key = norm(header).replace(/[^a-z0-9]+/g, "");
+    if (key) map.set(key, index);
+  });
+  return map;
+}
+
+function headerValue(row, map, names, fallbackIndex = null) {
+  for (const name of names) {
+    const index = map.get(name.replace(/[^a-z0-9]+/g, "").toLowerCase());
+    if (index !== undefined) return row[index];
+  }
+  return fallbackIndex === null ? "" : row[fallbackIndex];
+}
+
+function cleanHeaderValue(row, map, names, fallbackIndex = null) {
+  return clean(headerValue(row, map, names, fallbackIndex));
+}
+
+function dateHeaderValue(row, map, names, fallbackIndex = null) {
+  return excelSerialToDate(headerValue(row, map, names, fallbackIndex));
+}
+
 function normalizeWorkbookRows(matrix) {
   const headerIndex = matrix.findIndex((row) => row.some((cell) => norm(cell) === "vessel"));
   if (headerIndex < 0) throw new Error("Could not find the VESSEL header row.");
+  const headers = matrix[headerIndex];
+  const map = headerMap(headers);
 
   return matrix.slice(headerIndex + 1).map((r, idx) => ({
     sourceRow: headerIndex + idx + 2,
-    no: r[0],
-    vessel: clean(r[1]),
-    etaFiordland: excelSerialToDate(r[2]),
-    etaTime: r[3],
-    etdFiordland: excelSerialToDate(r[4]),
-    etdTime: r[5],
-    embark: clean(r[6]),
-    embarkDate: excelSerialToDate(r[7]),
-    disembark: clean(r[8]),
-    disembarkDate: excelSerialToDate(r[9]),
-    fromTo: clean(r[10]),
-    comments: clean(r[11]),
-    stewartIsland: clean(r[12]),
-    company: clean(r[13]),
+    no: headerValue(r, map, ["no"], 0),
+    status: cleanHeaderValue(r, map, ["status"]),
+    vessel: cleanHeaderValue(r, map, ["vessel"], 1),
+    etaFiordland: dateHeaderValue(r, map, ["milforddate", "fiordlanddate", "etafiordland"], 2),
+    etaTime: headerValue(r, map, ["etatime"], 3),
+    etdFiordland: dateHeaderValue(r, map, ["etdfiordland"], 4),
+    etdTime: headerValue(r, map, ["etdtime"], 5),
+    embark: cleanHeaderValue(r, map, ["embarkplace", "embark"], 6),
+    embarkDate: dateHeaderValue(r, map, ["embarkdate"], 7),
+    disembark: cleanHeaderValue(r, map, ["disembarkplace", "disembark"], 8),
+    disembarkDate: dateHeaderValue(r, map, ["disembarkdate"], 9),
+    fromTo: cleanHeaderValue(r, map, ["fromto"], 10),
+    comments: cleanHeaderValue(r, map, ["comments"], 11),
+    stewartIsland: cleanHeaderValue(r, map, ["stewartisland", "stewardisland"], 12),
+    company: cleanHeaderValue(r, map, ["company"], 13),
+    service: cleanHeaderValue(r, map, ["service"]),
+    pilot: cleanHeaderValue(r, map, ["pilot"]),
+    trainee: cleanHeaderValue(r, map, ["trainee"]),
+    lecturer: cleanHeaderValue(r, map, ["lecturer"]),
+    driver: cleanHeaderValue(r, map, ["driver"]),
+    mhDays: cleanHeaderValue(r, map, ["mhdays"]),
+    launch: cleanHeaderValue(r, map, ["launch"]),
+    actions: cleanHeaderValue(r, map, ["actions"]),
   })).filter((row) => row.vessel || row.etaFiordland || row.embark || row.disembark || row.comments);
 }
 

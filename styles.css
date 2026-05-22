@@ -220,8 +220,19 @@ h1 {
   overflow: hidden;
 }
 
+.workbook-panel {
+  background: #ffffff;
+  border: 1px solid #cbd6df;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  margin: 0 auto;
+  max-width: 1460px;
+  overflow: hidden;
+}
+
 .print-panel-head,
-.event-panel-head {
+.event-panel-head,
+.workbook-panel-head {
   align-items: end;
   background: #f7f9fb;
   border-bottom: 1px solid #d8e0e8;
@@ -252,19 +263,22 @@ h1 {
 }
 
 .print-panel h2,
-.event-panel h2 {
+.event-panel h2,
+.workbook-panel h2 {
   font-size: 24px;
   line-height: 1;
   margin: 0;
 }
 
 .print-panel .eyebrow,
-.event-panel .eyebrow {
+.event-panel .eyebrow,
+.workbook-panel .eyebrow {
   color: var(--teal);
 }
 
 .print-summary,
-.event-summary {
+.event-summary,
+.workbook-summary {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -272,7 +286,8 @@ h1 {
 }
 
 .print-summary span,
-.event-summary {
+.event-summary,
+.workbook-summary {
   background: #ffffff;
   border: 1px solid #cbd6df;
   border-radius: 999px;
@@ -297,7 +312,8 @@ h1 {
 }
 
 .print-table-wrap,
-.event-table-wrap {
+.event-table-wrap,
+.workbook-table-wrap {
   max-height: calc(100vh - 210px);
   overflow: auto;
 }
@@ -351,7 +367,8 @@ h1 {
 }
 
 .print-table,
-.event-table {
+.event-table,
+.workbook-table {
   border-collapse: separate;
   border-spacing: 0;
   min-width: 0;
@@ -361,7 +378,9 @@ h1 {
 .print-table th,
 .print-table td,
 .event-table th,
-.event-table td {
+.event-table td,
+.workbook-table th,
+.workbook-table td {
   border: 0;
   border-bottom: 1px solid #d8e0e8;
   height: auto;
@@ -371,7 +390,8 @@ h1 {
 }
 
 .print-table th,
-.event-table th {
+.event-table th,
+.workbook-table th {
   background: var(--navy);
   color: #ffffff;
   font-size: 12px;
@@ -382,8 +402,29 @@ h1 {
 }
 
 .print-table td,
-.event-table td {
+.event-table td,
+.workbook-table td {
   font-size: 13px;
+}
+
+.workbook-table {
+  min-width: 1850px;
+}
+
+.workbook-table th,
+.workbook-table td {
+  min-width: 110px;
+}
+
+.workbook-table th:nth-child(2),
+.workbook-table td:nth-child(2) {
+  min-width: 210px;
+}
+
+.workbook-empty {
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center !important;
 }
 
 .pilot-record-table th,
@@ -494,6 +535,7 @@ h1 {
   #rosterTab,
   #agentTab,
   #polCruiseTab,
+  #workbookTab,
   #eventsTab,
   .print-button {
     display: none !important;
