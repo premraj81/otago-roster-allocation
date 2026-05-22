@@ -553,7 +553,7 @@ table {
 th,
 td {
   border: 1px solid rgba(190, 202, 214, 0.92);
-  height: 19px;
+  height: 22px;
   min-width: 36px;
   padding: 1px 2px;
   text-align: center;
@@ -933,11 +933,20 @@ tbody .date-col {
 }
 
 .fp-label {
+  background: linear-gradient(180deg, #ffffff, #f4f7fa);
+  border: 1px solid rgba(192, 23, 23, 0.18);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 3px rgba(18, 38, 58, 0.12);
   color: #c01717;
   display: inline-block;
   font-size: 9px;
   font-weight: 900;
-  line-height: 1;
+  line-height: 15px;
+  min-height: 16px;
+  min-width: 28px;
+  padding: 0 4px;
 }
 
 .sick {
@@ -952,20 +961,47 @@ tbody .date-col {
 
 .cell-select {
   appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.18)),
+    rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(18, 38, 58, 0.13);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 1px 2px rgba(18, 38, 58, 0.1);
   color: #111;
   cursor: pointer;
   font-size: 9px;
-  font-weight: 700;
-  height: 20px;
+  font-weight: 800;
+  height: 18px;
   line-height: 1;
-  min-height: 20px;
-  padding: 0;
+  min-height: 18px;
+  padding: 0 10px 0 3px;
+  position: relative;
   text-align: center;
   text-align-last: center;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
   width: 100%;
+}
+
+.cell-select:hover {
+  background:
+    linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.42)),
+    rgba(255, 255, 255, 0.32);
+  border-color: rgba(18, 38, 58, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 3px 7px rgba(18, 38, 58, 0.18);
+  transform: translateY(-1px);
+}
+
+.cell-select:active {
+  box-shadow: inset 0 2px 4px rgba(18, 38, 58, 0.18);
+  transform: translateY(0);
 }
 
 tbody tr:hover > :not(.ship-cell) {
@@ -1127,8 +1163,11 @@ tbody tr:hover > :not(.ship-cell) {
 }
 
 .cell-select:focus {
-  outline: 2px solid #176fca;
-  outline-offset: -2px;
+  border-color: #176fca;
+  box-shadow:
+    0 0 0 2px rgba(23, 111, 202, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  outline: 0;
 }
 
 .today-row td,
