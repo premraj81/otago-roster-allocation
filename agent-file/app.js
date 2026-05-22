@@ -550,7 +550,7 @@ function normalizeWorkbookRows(matrix) {
   return matrix.slice(headerIndex + 1).map((r, idx) => ({
     sourceRow: headerIndex + idx + 2,
     no: headerValue(r, map, ["no"], 0),
-    status: cleanHeaderValue(r, map, ["status"]),
+    status: cleanHeaderValue(r, map, ["status", "confirmationstatus", "confirmedstatus", "bookingstatus"]),
     vessel: cleanHeaderValue(r, map, ["vessel"], 1),
     etaFiordland: dateHeaderValue(r, map, ["milforddate", "fiordlanddate", "etafiordland"], 2),
     etaTime: headerValue(r, map, ["etatime"], 3),

@@ -1041,7 +1041,7 @@ function renderWorkbook() {
     ? rows
         .map((row) => `
           <tr>
-            <td>${escapeHtml(row.status)}</td>
+            <td>${row.status ? `<span class="workbook-status ${workbookStatusClass(row.status)}">${escapeHtml(row.status)}</span>` : ""}</td>
             <td>${escapeHtml(row.vessel)}</td>
             <td>${escapeHtml(row.company)}</td>
             <td>${escapeHtml(row.embarkPlace)}</td>
@@ -1080,8 +1080,8 @@ function workbookItems() {
         disembarkPlace: vesselClean(row.disembark),
         disembarkDate: workbookDate(row.disembarkDate),
         service: vesselClean(row.service),
-        pilot: vesselClean(row.pilot) || pilotsForRow.join(", "),
-        trainee: vesselClean(row.trainee),
+        pilot: vesselClean(row.pilot) || pilotsForRow[0] || "",
+        trainee: vesselClean(row.trainee) || pilotsForRow[1] || "",
         stewartIsland: vesselClean(row.stewartIsland),
         lecturer: vesselClean(row.lecturer),
         driver: vesselClean(row.driver),
@@ -1093,6 +1093,15 @@ function workbookItems() {
     })
     .filter(Boolean)
     .sort((a, b) => a.sortDate - b.sortDate || a.vessel.localeCompare(b.vessel));
+}
+
+function workbookStatusClass(value) {
+  const normalized = vesselClean(value).toLowerCase().replace(/[^a-z]/g, "");
+  if (normalized === "confirmed") return "status-confirmed";
+  if (normalized === "notconfirmed" || normalized === "notconrimed" || normalized === "unconfirmed") return "status-not-confirmed";
+  if (normalized === "cancelled" || normalized === "canceled" || normalized === "canclled") return "status-cancelled";
+  if (normalized === "maybe" || normalized === "maybeconfirmed") return "status-maybe";
+  return "status-neutral";
 }
 
 function workbookDate(value, fallback = null) {
