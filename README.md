@@ -20,5 +20,6 @@ Shared Supabase keys used by the app:
 - `otago-roster-edits-v2`
 - `otago-vessel-pilot-allocations-v1`
 - `fiordland-calendar-rows-v1`
+- `fiordland-calendar-upload-meta-v1`
 - `pol-cruise-counts-v1`
 - `pol-cruise-records-v1`

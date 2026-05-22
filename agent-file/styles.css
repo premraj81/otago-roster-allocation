@@ -58,11 +58,20 @@ h1 {
 .upload-panel {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 5px;
   min-width: 360px;
   justify-content: flex-end;
   color: var(--muted);
   font-size: 10px;
+}
+
+.upload-record {
+  flex-basis: 100%;
+  text-align: right;
+  color: var(--navy);
+  font-size: 9px;
+  font-weight: 700;
 }
 
 #fileInput {

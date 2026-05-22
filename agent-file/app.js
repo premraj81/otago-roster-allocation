@@ -2,10 +2,13 @@ const START = new Date(Date.UTC(2026, 9, 1));
 const END = new Date(Date.UTC(2027, 3, 30));
 const ROUTES = ["North Bound", "South Bound", "Bluff", "Lyttelton/Timaru", "Unclassified"];
 const STORAGE_KEY = "fiordland-calendar-rows-v1";
+const UPLOAD_META_KEY = "fiordland-calendar-upload-meta-v1";
 let sharedRowsRefreshInFlight = false;
+let sharedUploadMetaRefreshInFlight = false;
 
 const state = {
   rows: loadSavedRows() || window.FIORDLAND_INITIAL_ROWS || [],
+  uploadMeta: loadUploadMeta(),
   search: "",
   month: "all",
   route: "all",
@@ -29,6 +32,61 @@ function saveRows() {
     console.warn("Could not save Agent File rows to Supabase", error);
   });
   window.parent?.postMessage({ type: "agent-file-rows-updated" }, window.location.origin);
+}
+
+function loadUploadMeta() {
+  try {
+    return JSON.parse(localStorage.getItem(UPLOAD_META_KEY)) || { history: [] };
+  } catch {
+    return { history: [] };
+  }
+}
+
+function saveUploadMeta() {
+  localStorage.setItem(UPLOAD_META_KEY, JSON.stringify(state.uploadMeta));
+  window.OtagoSharedStore?.save(UPLOAD_META_KEY, state.uploadMeta).catch((error) => {
+    console.warn("Could not save upload record to Supabase", error);
+  });
+}
+
+function recordUpload(file, rowCount) {
+  const entry = {
+    fileName: file.name,
+    size: file.size,
+    rowCount,
+    uploadedAt: new Date().toISOString(),
+  };
+  state.uploadMeta = {
+    lastUpload: entry,
+    history: [entry, ...(state.uploadMeta.history || [])].slice(0, 20),
+  };
+  saveUploadMeta();
+  renderUploadRecord();
+}
+
+function formatUploadTimestamp(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-NZ", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function renderUploadRecord() {
+  const lastUpload = state.uploadMeta?.lastUpload;
+  if (!lastUpload) {
+    els.uploadRecord.textContent = "Last upload: none";
+    els.uploadRecord.title = "";
+    return;
+  }
+
+  const timestamp = formatUploadTimestamp(lastUpload.uploadedAt);
+  els.uploadRecord.textContent = `Last upload: ${lastUpload.fileName} - ${timestamp}`;
+  els.uploadRecord.title = `${lastUpload.rowCount || 0} vessel rows loaded`;
 }
 
 function resetSavedRows() {
@@ -82,10 +140,35 @@ async function refreshSharedRows({ seedIfMissing = false } = {}) {
   }
 }
 
+async function refreshSharedUploadMeta({ seedIfMissing = false } = {}) {
+  if (sharedUploadMetaRefreshInFlight || !window.OtagoSharedStore?.isReady) return;
+  sharedUploadMetaRefreshInFlight = true;
+
+  try {
+    const remote = await window.OtagoSharedStore.load(UPLOAD_META_KEY);
+    if (!remote.found) {
+      if (seedIfMissing) await window.OtagoSharedStore.save(UPLOAD_META_KEY, state.uploadMeta);
+      return;
+    }
+
+    const nextMeta = remote.data || { history: [] };
+    if (JSON.stringify(state.uploadMeta) === JSON.stringify(nextMeta)) return;
+
+    state.uploadMeta = nextMeta;
+    localStorage.setItem(UPLOAD_META_KEY, JSON.stringify(state.uploadMeta));
+    renderUploadRecord();
+  } catch (error) {
+    console.warn("Could not load shared upload record", error);
+  } finally {
+    sharedUploadMetaRefreshInFlight = false;
+  }
+}
+
 const els = {
   fileInput: document.querySelector("#fileInput"),
   resetButton: document.querySelector("#resetButton"),
   fileStatus: document.querySelector("#fileStatus"),
+  uploadRecord: document.querySelector("#uploadRecord"),
   searchInput: document.querySelector("#searchInput"),
   monthFilter: document.querySelector("#monthFilter"),
   routeFilter: document.querySelector("#routeFilter"),
@@ -453,6 +536,7 @@ async function handleUpload(event) {
     const matrix = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true, defval: "" });
     state.rows = normalizeWorkbookRows(matrix);
     saveRows();
+    recordUpload(file, state.rows.length);
     els.fileStatus.textContent = `${file.name} loaded`;
     render();
   } catch (error) {
@@ -561,6 +645,12 @@ els.cancelEditButton.addEventListener("click", closeEditor);
 
 buildMonthFilter();
 render();
+renderUploadRecord();
 refreshSharedRows({ seedIfMissing: true });
+refreshSharedUploadMeta({ seedIfMissing: true });
 setInterval(refreshSharedRows, 5000);
-window.addEventListener("focus", () => refreshSharedRows());
+setInterval(refreshSharedUploadMeta, 5000);
+window.addEventListener("focus", () => {
+  refreshSharedRows();
+  refreshSharedUploadMeta();
+});
