@@ -2,6 +2,7 @@ const STORAGE_KEY = "otago-roster-edits-v2";
 const VESSEL_ALLOCATION_KEY = "otago-vessel-pilot-allocations-v1";
 const AGENT_FILE_STORAGE_KEY = "fiordland-calendar-rows-v1";
 const POL_CRUISE_COUNTS_KEY = "pol-cruise-counts-v1";
+const EVENT_LOG_STORAGE_KEY = "otago-event-log-v1";
 const SOUTH_PORT_ALLOCATION = "SOUTH_PORT";
 
 const pilots = [
@@ -103,6 +104,7 @@ let edits = loadEdits();
 let vesselAllocations = loadVesselAllocations();
 let vesselRows = loadAgentVesselRows();
 let polCruiseCounts = loadPolCruiseCounts();
+let eventLog = loadEventLog();
 let remoteRefreshInFlight = false;
 const titleHeading = document.querySelector("h1");
 const seasonSelect = document.querySelector("#seasonSelect");
@@ -118,6 +120,10 @@ const printItemsTab = document.querySelector("#printItemsTab");
 const printItemsBody = document.querySelector("#printItemsBody");
 const printSummary = document.querySelector("#printSummary");
 const printItemsButton = document.querySelector("#printItemsButton");
+const eventsTab = document.querySelector("#eventsTab");
+const eventItemsBody = document.querySelector("#eventItemsBody");
+const eventSummary = document.querySelector("#eventSummary");
+const eventRefreshButton = document.querySelector("#eventRefreshButton");
 
 function toDate(value) {
   const [year, month, day] = value.split("-").map(Number);
@@ -250,6 +256,14 @@ function loadPolCruiseCounts() {
   }
 }
 
+function loadEventLog() {
+  try {
+    return JSON.parse(localStorage.getItem(EVENT_LOG_STORAGE_KEY)) || { events: [] };
+  } catch {
+    return { events: [] };
+  }
+}
+
 function saveSharedState(key, data) {
   window.OtagoSharedStore?.save(key, data).catch((error) => {
     console.warn(`Could not save ${key} to Supabase`, error);
@@ -350,6 +364,84 @@ async function refreshSharedState() {
   } finally {
     remoteRefreshInFlight = false;
   }
+}
+
+async function recordEvent(type, title, details = "") {
+  const event = { type, title, details };
+
+  try {
+    if (window.OtagoSharedStore?.logEvent) {
+      await window.OtagoSharedStore.logEvent(event);
+    } else {
+      const next = {
+        events: [
+          {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            createdAt: new Date().toISOString(),
+            source: "Otago Roster",
+            ...event,
+          },
+          ...(eventLog.events || []),
+        ].slice(0, 800),
+      };
+      eventLog = next;
+      localStorage.setItem(EVENT_LOG_STORAGE_KEY, JSON.stringify(next));
+    }
+    await refreshEventLog();
+  } catch (error) {
+    console.warn("Could not record event", error);
+  }
+}
+
+async function refreshEventLog({ seedIfMissing = false } = {}) {
+  try {
+    const shared = window.OtagoSharedStore;
+    if (shared?.isReady) {
+      const remote = await shared.load(EVENT_LOG_STORAGE_KEY);
+      if (!remote.found && seedIfMissing) {
+        await shared.save(EVENT_LOG_STORAGE_KEY, eventLog);
+      } else if (remote.found) {
+        eventLog = remote.data || { events: [] };
+        localStorage.setItem(EVENT_LOG_STORAGE_KEY, JSON.stringify(eventLog));
+      }
+    } else {
+      eventLog = loadEventLog();
+    }
+    renderEvents();
+  } catch (error) {
+    console.warn("Could not refresh events", error);
+  }
+}
+
+function formatEventTime(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-NZ", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+}
+
+function renderEvents() {
+  const events = eventLog.events || [];
+  eventSummary.textContent = `${events.length} recorded event${events.length === 1 ? "" : "s"}`;
+  eventItemsBody.innerHTML = events.length
+    ? events
+        .map((event) => `
+          <tr>
+            <td>${escapeHtml(formatEventTime(event.createdAt))}</td>
+            <td>
+              <span class="event-type event-type-${escapeHtml(event.type || "general")}">${escapeHtml(event.title || "Event")}</span>
+            </td>
+            <td>${escapeHtml(event.details || "")}</td>
+          </tr>
+        `)
+        .join("")
+    : `<tr><td colspan="3" class="event-empty">No events recorded yet.</td></tr>`;
 }
 
 function reviveVesselRow(row) {
@@ -498,6 +590,7 @@ function buildCellSelect(pilot, date, value) {
   select.dataset.key = editKey(date, pilot);
   select.dataset.baseline = baselineValue(pilot, date);
   select.dataset.pilot = pilot.code;
+  select.dataset.currentValue = value;
 
   const workLabel = pilot.contractor ? "Fiords" : pilot.code;
   const workValue = pilot.contractor ? "FIORDS" : pilot.code;
@@ -613,6 +706,10 @@ function refreshRosterRows(dates) {
 
 function updateCell(select) {
   const baseline = select.dataset.baseline;
+  const previousValue = select.dataset.currentValue ?? baseline;
+  const pilot = pilots.find((item) => item.code === select.dataset.pilot);
+  const row = select.closest("tr");
+  const date = toDate(row.id.replace("date-", ""));
   if (select.value === baseline) {
     delete edits[select.dataset.key];
   } else {
@@ -621,20 +718,31 @@ function updateCell(select) {
   saveEdits();
 
   const td = select.closest("td");
-  const row = select.closest("tr");
   td.className = cellClass(select.value, baseline);
   td.title = `${select.dataset.pilot} - ${select.value || "Blank"}`;
+  select.dataset.currentValue = select.value;
   if (select.value.startsWith("FP_")) {
-    refreshRosterRows([toDate(row.id.replace("date-", ""))]);
+    refreshRosterRows([date]);
   } else {
     updateRowCount(row);
   }
   updateTracker();
+
+  if (pilot && previousValue !== select.value) {
+    const from = displayValue(previousValue, pilot, false) || "Blank";
+    const to = displayValue(select.value, pilot, false) || "Blank";
+    recordEvent(
+      "roster",
+      "Pilot roster changed",
+      `${formatShortDate(date)} - ${pilot.code}: ${from} to ${to}`
+    );
+  }
 }
 
 function updateVesselAllocation(select) {
   const key = select.dataset.key;
   const vesselRow = vesselRows.find((row) => vesselAllocationKey(row) === key);
+  const previous = vesselPilotsForAllocationKey(key);
   const selects = [
     ...select.closest(".ship-allocations").querySelectorAll(".vessel-pilot-select"),
   ];
@@ -659,6 +767,14 @@ function updateVesselAllocation(select) {
   shell.scrollLeft = left;
   shell.scrollTop = top;
   if (vesselRow) scheduleSummaryRefresh();
+  if (JSON.stringify(previous) !== JSON.stringify(normalized)) {
+    const date = vesselRow ? shipRosterDate(vesselRow) : rosterDateFromAllocationKey(key);
+    recordEvent(
+      "vessel",
+      "Vessel allocation changed",
+      `${date ? formatShortDate(date) : "No date"} - ${vesselRow?.vessel || "Vessel"}: ${allocationBadgeText(previous) || "Unallocated"} to ${allocationBadgeText(normalized) || "Unallocated"}`
+    );
+  }
 }
 
 function scheduleSummaryRefresh() {
@@ -1277,6 +1393,7 @@ function scrollToDate(key) {
 function switchTab(tabName) {
   if (tabName === "roster" || tabName === "printItems") refreshVesselRowsFromAgent();
   if (tabName === "printItems") renderPrintItems();
+  if (tabName === "events") refreshEventLog();
   tabButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === tabName);
   });
@@ -1284,6 +1401,7 @@ function switchTab(tabName) {
   agentTab.classList.toggle("active", tabName === "agent");
   polCruiseTab.classList.toggle("active", tabName === "polCruise");
   printItemsTab.classList.toggle("active", tabName === "printItems");
+  eventsTab.classList.toggle("active", tabName === "events");
 }
 
 seasonSelect.addEventListener("change", () => {
@@ -1293,6 +1411,7 @@ monthSelect.addEventListener("change", () => {
   scrollToDate(monthSelect.value);
 });
 printItemsButton.addEventListener("click", () => window.print());
+eventRefreshButton.addEventListener("click", () => refreshEventLog());
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => switchTab(button.dataset.tab));
 });
@@ -1309,15 +1428,21 @@ window.addEventListener("message", (event) => {
     refreshVesselRowsFromAgent();
     refreshSharedState();
   }
+  if (event.origin === window.location.origin && event.data?.type === "otago-event-log-updated") {
+    refreshEventLog();
+  }
 });
 window.addEventListener("focus", () => {
   refreshVesselRowsFromAgent();
   refreshPolCruiseCounts();
   refreshSharedState();
+  refreshEventLog();
 });
 setInterval(refreshVesselRowsFromAgent, 1500);
 setInterval(refreshPolCruiseCounts, 1500);
 setInterval(refreshSharedState, 5000);
+setInterval(refreshEventLog, 5000);
+window.addEventListener("otago-event-log-updated", () => refreshEventLog());
 rosterBody.addEventListener("change", (event) => {
   if (event.target.matches(".cell-select")) updateCell(event.target);
   if (event.target.matches(".vessel-pilot-select")) updateVesselAllocation(event.target);
@@ -1332,3 +1457,4 @@ updateSeasonTitle();
 buildMonthSelect();
 buildTable();
 refreshSharedState();
+refreshEventLog({ seedIfMissing: true });

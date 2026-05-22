@@ -77,6 +77,18 @@ function setStatus(message, progress = null) {
   }
 }
 
+function logPolEvent(title, details) {
+  window.OtagoSharedStore?.logEvent?.({
+    type: "pol",
+    title,
+    details,
+  }).then(() => {
+    window.parent?.postMessage({ type: "otago-event-log-updated" }, window.location.origin);
+  }).catch((error) => {
+    console.warn("Could not record POL cruise event", error);
+  });
+}
+
 function reviveCruiseRecord(record) {
   return {
     ...record,
@@ -761,6 +773,10 @@ async function handleFiles(files) {
 
     const parsed = parseScheduleText(combinedText);
     const added = mergeRecords(parsed);
+    logPolEvent(
+      "POL cruise document uploaded",
+      `${accepted.map((file) => file.name).join(", ")} - added ${added} cruise movement row${added === 1 ? "" : "s"}`
+    );
     setStatus(`Finished. Added ${added} cruise movement row${added === 1 ? "" : "s"}.`, 100);
     render();
   } catch (error) {
@@ -795,9 +811,11 @@ function exportCsv() {
 }
 
 function clearAll() {
+  const previousCount = state.records.length;
   state.records = [];
   els.fileInput.value = "";
   setStatus("Ready for upload.", 0);
+  logPolEvent("POL cruise records cleared", `${previousCount} cruise movement row${previousCount === 1 ? "" : "s"} removed`);
   render();
 }
 

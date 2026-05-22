@@ -49,6 +49,18 @@ function saveUploadMeta() {
   });
 }
 
+function logAgentEvent(title, details) {
+  window.OtagoSharedStore?.logEvent?.({
+    type: "agent",
+    title,
+    details,
+  }).then(() => {
+    window.parent?.postMessage({ type: "otago-event-log-updated" }, window.location.origin);
+  }).catch((error) => {
+    console.warn("Could not record Agent Data event", error);
+  });
+}
+
 function recordUpload(file, rowCount) {
   const entry = {
     fileName: file.name,
@@ -93,6 +105,7 @@ function resetSavedRows() {
   localStorage.removeItem(STORAGE_KEY);
   state.rows = window.FIORDLAND_INITIAL_ROWS || [];
   saveRows();
+  logAgentEvent("Agent Data reset", "Vessel schedule reset to preloaded Pilotage 2026-27 sheet");
   els.fileStatus.textContent = "Reset to preloaded Pilotage 2026-27 sheet";
   render();
 }
@@ -537,6 +550,7 @@ async function handleUpload(event) {
     state.rows = normalizeWorkbookRows(matrix);
     saveRows();
     recordUpload(file, state.rows.length);
+    logAgentEvent("Agent Data uploaded", `${file.name} loaded with ${state.rows.length} vessel row${state.rows.length === 1 ? "" : "s"}`);
     els.fileStatus.textContent = `${file.name} loaded`;
     render();
   } catch (error) {
@@ -558,6 +572,7 @@ function handleWarningClick(event) {
   if (button.dataset.action === "accept-warning") {
     row.acceptedWarning = true;
     saveRows();
+    logAgentEvent("Agent warning accepted", `${row.vessel || "Vessel"} source row ${row.sourceRow}`);
     render();
     return;
   }
@@ -572,6 +587,7 @@ function handleWarningClick(event) {
   });
   row.acceptedWarning = false;
   saveRows();
+  logAgentEvent("Agent warning updated", `${row.vessel || "Vessel"} source row ${row.sourceRow}`);
   render();
 }
 
@@ -614,6 +630,7 @@ function handleEditSubmit(event) {
   saveRows();
   state.selectedSourceRow = null;
   els.fileStatus.textContent = `${row.vessel || "Vessel"} updated`;
+  logAgentEvent("Agent vessel updated", `${row.vessel || "Vessel"} source row ${row.sourceRow}`);
   render();
 }
 

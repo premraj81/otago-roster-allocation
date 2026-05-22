@@ -4,6 +4,7 @@ const OTAGO_SUPABASE_ANON_KEY =
 
 window.OtagoSharedStore = (() => {
   const table = "app_state";
+  const eventLogKey = "otago-event-log-v1";
   const client =
     window.supabase?.createClient?.(OTAGO_SUPABASE_URL, OTAGO_SUPABASE_ANON_KEY) ||
     null;
@@ -38,8 +39,49 @@ window.OtagoSharedStore = (() => {
     return true;
   }
 
+  function eventId() {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function localEventLog() {
+    try {
+      return JSON.parse(localStorage.getItem(eventLogKey)) || { events: [] };
+    } catch {
+      return { events: [] };
+    }
+  }
+
+  function cacheEventLog(payload) {
+    try {
+      localStorage.setItem(eventLogKey, JSON.stringify(payload));
+    } catch {
+      // Local cache is best-effort only.
+    }
+  }
+
+  async function logEvent(event) {
+    const entry = {
+      id: eventId(),
+      createdAt: new Date().toISOString(),
+      source: "Otago Roster",
+      ...event,
+    };
+    const current = client ? await load(eventLogKey) : { data: localEventLog(), found: true };
+    const payload = current.data || { events: [] };
+    const next = {
+      events: [entry, ...(payload.events || [])].slice(0, 800),
+    };
+
+    cacheEventLog(next);
+    if (client) await save(eventLogKey, next);
+    window.dispatchEvent(new CustomEvent("otago-event-log-updated", { detail: entry }));
+    return entry;
+  }
+
   return {
+    eventLogKey,
     isReady: Boolean(client),
+    logEvent,
     load,
     save,
   };

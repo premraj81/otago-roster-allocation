@@ -23,3 +23,4 @@ Shared Supabase keys used by the app:
 - `fiordland-calendar-upload-meta-v1`
 - `pol-cruise-counts-v1`
 - `pol-cruise-records-v1`
+- `otago-event-log-v1`
