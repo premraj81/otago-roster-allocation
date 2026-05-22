@@ -106,7 +106,7 @@ let vesselRows = loadAgentVesselRows();
 let polCruiseCounts = loadPolCruiseCounts();
 let eventLog = loadEventLog();
 let remoteRefreshInFlight = false;
-const titleHeading = document.querySelector("h1");
+const rosterSubtitle = document.querySelector("#rosterSubtitle");
 const seasonSelect = document.querySelector("#seasonSelect");
 const monthSelect = document.querySelector("#monthSelect");
 const pilotHeader = document.querySelector("#pilotHeader");
@@ -591,7 +591,7 @@ function buildSeasonSelect() {
 }
 
 function updateSeasonTitle() {
-  titleHeading.textContent = `Pilot Roster ${seasonLabel(selectedSeasonStart)}`;
+  rosterSubtitle.textContent = `Roster ${seasonLabel(selectedSeasonStart)}`;
 }
 
 function setRosterSeason(startYear) {
