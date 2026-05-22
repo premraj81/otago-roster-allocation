@@ -1098,7 +1098,7 @@ function workbookItems() {
 function workbookStatusClass(value) {
   const normalized = vesselClean(value).toLowerCase().replace(/[^a-z]/g, "");
   if (normalized === "confirmed") return "status-confirmed";
-  if (normalized === "notconfirmed" || normalized === "notconrimed" || normalized === "unconfirmed") return "status-not-confirmed";
+  if (normalized === "notconfirmed" || normalized === "notyetconfirmed" || normalized === "notconrimed" || normalized === "unconfirmed") return "status-not-confirmed";
   if (normalized === "cancelled" || normalized === "canceled" || normalized === "canclled") return "status-cancelled";
   if (normalized === "maybe" || normalized === "maybeconfirmed") return "status-maybe";
   return "status-neutral";

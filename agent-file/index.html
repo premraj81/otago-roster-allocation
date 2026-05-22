@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Fiordland Vessel Calendar</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260523-manual-vessel-1" />
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   </head>
   <body>
@@ -17,6 +17,7 @@
         <div class="upload-panel">
           <label class="file-button" for="fileInput">Upload Excel</label>
           <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+          <button id="addVesselButton" class="ghost-button" type="button">Add vessel</button>
           <button id="resetButton" class="ghost-button" type="button">Reset saved changes</button>
           <span id="fileStatus">Preloaded from Pilotage 2026-27 sheet</span>
           <span id="uploadRecord" class="upload-record">Last upload: none</span>
@@ -81,7 +82,16 @@
           <button id="closeEditButton" class="ghost-button" type="button">Close</button>
         </div>
         <form id="editForm" class="edit-form">
+          <label>Status
+            <select id="editStatus">
+              <option value="">Blank</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Not Yet Confirmed">Not Yet Confirmed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </label>
           <label>Vessel name<input id="editVessel" type="text" /></label>
+          <label>Company<input id="editCompany" type="text" /></label>
           <label>Fiordland ETA date<input id="editEtaDate" type="date" /></label>
           <label>ETA time<input id="editEtaTime" type="time" /></label>
           <label>Fiordland ETD date<input id="editEtdDate" type="date" /></label>
@@ -91,10 +101,19 @@
           <label>Disembark port<input id="editDisembark" type="text" /></label>
           <label>Disembark date<input id="editDisembarkDate" type="date" /></label>
           <label>From / To<input id="editFromTo" type="text" /></label>
+          <label>Service<input id="editService" type="text" /></label>
+          <label>Pilot<input id="editPilot" type="text" /></label>
+          <label>Trainee<input id="editTrainee" type="text" /></label>
           <label>Stewart Island<input id="editStewartIsland" type="text" /></label>
+          <label>Lecturer<input id="editLecturer" type="text" /></label>
+          <label>Driver<input id="editDriver" type="text" /></label>
+          <label>MH Days<input id="editMhDays" type="text" /></label>
+          <label>Launch<input id="editLaunch" type="text" /></label>
+          <label>Actions<input id="editActions" type="text" /></label>
           <label class="wide-field">Comments<textarea id="editComments" rows="3"></textarea></label>
           <div class="edit-actions">
             <button type="submit">Save update</button>
+            <button id="deleteVesselButton" class="danger-button" type="button">Delete vessel</button>
             <button id="cancelEditButton" class="ghost-button" type="button">Cancel</button>
           </div>
         </form>
@@ -123,6 +142,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../shared-store.js?v=20260523-events-1"></script>
     <script src="./initial-data.js"></script>
-    <script src="./app.js?v=20260523-events-1"></script>
+    <script src="./app.js?v=20260523-manual-vessel-1"></script>
   </body>
 </html>

@@ -111,6 +111,18 @@ h1 {
   white-space: nowrap;
 }
 
+.danger-button {
+  min-height: 40px;
+  border: 1px solid #f1a4a4;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #fff1f2;
+  color: #b42318;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
 .controls {
   display: grid;
   grid-template-columns: 0.7fr 0.36fr 0.42fr;
@@ -225,6 +237,7 @@ select {
 .edit-actions {
   display: flex;
   align-items: end;
+  flex-wrap: wrap;
   gap: 8px;
 }
 

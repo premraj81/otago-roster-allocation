@@ -3,6 +3,7 @@ const END = new Date(Date.UTC(2027, 3, 30));
 const ROUTES = ["North Bound", "South Bound", "Bluff", "Lyttelton/Timaru", "Unclassified"];
 const STORAGE_KEY = "fiordland-calendar-rows-v1";
 const UPLOAD_META_KEY = "fiordland-calendar-upload-meta-v1";
+const NEW_ROW_ID = "__new_vessel__";
 let sharedRowsRefreshInFlight = false;
 let sharedUploadMetaRefreshInFlight = false;
 
@@ -14,6 +15,7 @@ const state = {
   route: "all",
   warningsOpen: true,
   selectedSourceRow: null,
+  newRowDraft: null,
 };
 
 function loadSavedRows() {
@@ -179,6 +181,7 @@ async function refreshSharedUploadMeta({ seedIfMissing = false } = {}) {
 
 const els = {
   fileInput: document.querySelector("#fileInput"),
+  addVesselButton: document.querySelector("#addVesselButton"),
   resetButton: document.querySelector("#resetButton"),
   fileStatus: document.querySelector("#fileStatus"),
   uploadRecord: document.querySelector("#uploadRecord"),
@@ -196,7 +199,10 @@ const els = {
   editForm: document.querySelector("#editForm"),
   closeEditButton: document.querySelector("#closeEditButton"),
   cancelEditButton: document.querySelector("#cancelEditButton"),
+  deleteVesselButton: document.querySelector("#deleteVesselButton"),
+  editStatus: document.querySelector("#editStatus"),
   editVessel: document.querySelector("#editVessel"),
+  editCompany: document.querySelector("#editCompany"),
   editEtaDate: document.querySelector("#editEtaDate"),
   editEtaTime: document.querySelector("#editEtaTime"),
   editEtdDate: document.querySelector("#editEtdDate"),
@@ -206,7 +212,15 @@ const els = {
   editDisembark: document.querySelector("#editDisembark"),
   editDisembarkDate: document.querySelector("#editDisembarkDate"),
   editFromTo: document.querySelector("#editFromTo"),
+  editService: document.querySelector("#editService"),
+  editPilot: document.querySelector("#editPilot"),
+  editTrainee: document.querySelector("#editTrainee"),
   editStewartIsland: document.querySelector("#editStewartIsland"),
+  editLecturer: document.querySelector("#editLecturer"),
+  editDriver: document.querySelector("#editDriver"),
+  editMhDays: document.querySelector("#editMhDays"),
+  editLaunch: document.querySelector("#editLaunch"),
+  editActions: document.querySelector("#editActions"),
   editComments: document.querySelector("#editComments"),
   calendarBody: document.querySelector("#calendarBody"),
 };
@@ -414,7 +428,7 @@ function render() {
   const { days, warnings, included } = analyzeRows(state.rows);
   const visibleDays = days.filter(rowMatchesFilters);
   const busyDays = days.filter((day) => ROUTES.some((route) => day[route].length > 0)).length;
-  const selectedRow = findRowBySourceRow(state.selectedSourceRow);
+  const selectedRow = findEditableRow(state.selectedSourceRow);
 
   els.totalShips.textContent = included;
   els.warningCount.textContent = warnings.length;
@@ -460,8 +474,12 @@ function renderEditPanel(row) {
   els.editSection.classList.toggle("hidden", !row);
   if (!row) return;
 
-  els.editTitle.textContent = `Edit ${row.vessel || `source row ${row.sourceRow}`}`;
+  const isNew = String(state.selectedSourceRow) === NEW_ROW_ID;
+  els.editTitle.textContent = isNew ? "Add new vessel" : `Edit ${row.vessel || `source row ${row.sourceRow}`}`;
+  els.deleteVesselButton.classList.toggle("hidden", isNew);
+  els.editStatus.value = editorStatusValue(row.status);
   els.editVessel.value = row.vessel || "";
+  els.editCompany.value = row.company || "";
   els.editEtaDate.value = dateInputValue(row.etaFiordland);
   els.editEtaTime.value = timeInputValue(row.etaTime);
   els.editEtdDate.value = dateInputValue(row.etdFiordland);
@@ -471,8 +489,24 @@ function renderEditPanel(row) {
   els.editDisembark.value = row.disembark || "";
   els.editDisembarkDate.value = dateInputValue(row.disembarkDate);
   els.editFromTo.value = row.fromTo || "";
+  els.editService.value = row.service || "";
+  els.editPilot.value = row.pilot || "";
+  els.editTrainee.value = row.trainee || "";
   els.editStewartIsland.value = row.stewartIsland || "";
+  els.editLecturer.value = row.lecturer || "";
+  els.editDriver.value = row.driver || "";
+  els.editMhDays.value = row.mhDays || "";
+  els.editLaunch.value = row.launch || "";
+  els.editActions.value = row.actions || "";
   els.editComments.value = row.comments || "";
+}
+
+function editorStatusValue(value) {
+  const normalized = norm(value).replace(/[^a-z]/g, "");
+  if (normalized === "confirmed") return "Confirmed";
+  if (normalized === "notconfirmed" || normalized === "notyetconfirmed" || normalized === "unconfirmed") return "Not Yet Confirmed";
+  if (normalized === "cancelled" || normalized === "canceled" || normalized === "canclled") return "Cancelled";
+  return "";
 }
 
 function dateInputValue(date) {
@@ -598,6 +632,74 @@ function findRowBySourceRow(sourceRow) {
   return state.rows.find((row) => String(row.sourceRow) === String(sourceRow));
 }
 
+function findEditableRow(sourceRow) {
+  if (String(sourceRow) === NEW_ROW_ID) return state.newRowDraft;
+  return findRowBySourceRow(sourceRow);
+}
+
+function nextSourceRow() {
+  return state.rows.reduce((max, row) => {
+    const numeric = Number(row.sourceRow);
+    return Number.isFinite(numeric) ? Math.max(max, numeric) : max;
+  }, 0) + 1;
+}
+
+function blankVesselRow() {
+  return {
+    sourceRow: nextSourceRow(),
+    no: "",
+    status: "",
+    vessel: "",
+    company: "",
+    etaFiordland: null,
+    etaTime: "",
+    etdFiordland: null,
+    etdTime: "",
+    embark: "",
+    embarkDate: null,
+    disembark: "",
+    disembarkDate: null,
+    fromTo: "",
+    comments: "",
+    stewartIsland: "",
+    service: "",
+    pilot: "",
+    trainee: "",
+    lecturer: "",
+    driver: "",
+    mhDays: "",
+    launch: "",
+    actions: "",
+    acceptedWarning: false,
+  };
+}
+
+function applyEditFormToRow(row) {
+  row.status = clean(els.editStatus.value);
+  row.vessel = clean(els.editVessel.value);
+  row.company = clean(els.editCompany.value);
+  row.etaFiordland = dateFromInput(els.editEtaDate.value);
+  row.etaTime = timeFromInput(els.editEtaTime.value);
+  row.etdFiordland = dateFromInput(els.editEtdDate.value);
+  row.etdTime = timeFromInput(els.editEtdTime.value);
+  row.embark = clean(els.editEmbark.value);
+  row.embarkDate = dateFromInput(els.editEmbarkDate.value);
+  row.disembark = clean(els.editDisembark.value);
+  row.disembarkDate = dateFromInput(els.editDisembarkDate.value);
+  row.fromTo = clean(els.editFromTo.value);
+  row.service = clean(els.editService.value);
+  row.pilot = clean(els.editPilot.value);
+  row.trainee = clean(els.editTrainee.value);
+  row.stewartIsland = clean(els.editStewartIsland.value);
+  row.lecturer = clean(els.editLecturer.value);
+  row.driver = clean(els.editDriver.value);
+  row.mhDays = clean(els.editMhDays.value);
+  row.launch = clean(els.editLaunch.value);
+  row.actions = clean(els.editActions.value);
+  row.comments = clean(els.editComments.value);
+  row.acceptedWarning = false;
+}
+
 function handleWarningClick(event) {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
@@ -629,12 +731,21 @@ function handleWarningClick(event) {
 
 function openEditorForRow(sourceRow) {
   state.selectedSourceRow = sourceRow;
+  state.newRowDraft = null;
+  render();
+  els.editSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function openNewVesselEditor() {
+  state.newRowDraft = blankVesselRow();
+  state.selectedSourceRow = NEW_ROW_ID;
   render();
   els.editSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function closeEditor() {
   state.selectedSourceRow = null;
+  state.newRowDraft = null;
   render();
 }
 
@@ -646,31 +757,42 @@ function handleCalendarClick(event) {
 
 function handleEditSubmit(event) {
   event.preventDefault();
-  const row = findRowBySourceRow(state.selectedSourceRow);
+  const isNew = String(state.selectedSourceRow) === NEW_ROW_ID;
+  const row = isNew ? state.newRowDraft : findRowBySourceRow(state.selectedSourceRow);
   if (!row) return;
 
-  row.vessel = clean(els.editVessel.value);
-  row.etaFiordland = dateFromInput(els.editEtaDate.value);
-  row.etaTime = timeFromInput(els.editEtaTime.value);
-  row.etdFiordland = dateFromInput(els.editEtdDate.value);
-  row.etdTime = timeFromInput(els.editEtdTime.value);
-  row.embark = clean(els.editEmbark.value);
-  row.embarkDate = dateFromInput(els.editEmbarkDate.value);
-  row.disembark = clean(els.editDisembark.value);
-  row.disembarkDate = dateFromInput(els.editDisembarkDate.value);
-  row.fromTo = clean(els.editFromTo.value);
-  row.stewartIsland = clean(els.editStewartIsland.value);
-  row.comments = clean(els.editComments.value);
-  row.acceptedWarning = false;
+  applyEditFormToRow(row);
+  if (!row.vessel) {
+    els.fileStatus.textContent = "Enter a vessel name before saving";
+    return;
+  }
+  if (isNew) state.rows.push(row);
 
   saveRows();
   state.selectedSourceRow = null;
-  els.fileStatus.textContent = `${row.vessel || "Vessel"} updated`;
-  logAgentEvent("Agent vessel updated", `${row.vessel || "Vessel"} source row ${row.sourceRow}`);
+  state.newRowDraft = null;
+  els.fileStatus.textContent = `${row.vessel || "Vessel"} ${isNew ? "added" : "updated"}`;
+  logAgentEvent(isNew ? "Agent vessel added" : "Agent vessel updated", `${row.vessel || "Vessel"} source row ${row.sourceRow}`);
+  render();
+}
+
+function handleDeleteVessel() {
+  const row = findRowBySourceRow(state.selectedSourceRow);
+  if (!row) return;
+  const vesselName = row.vessel || `source row ${row.sourceRow}`;
+  if (!window.confirm(`Delete ${vesselName}?`)) return;
+
+  state.rows = state.rows.filter((item) => String(item.sourceRow) !== String(row.sourceRow));
+  saveRows();
+  state.selectedSourceRow = null;
+  state.newRowDraft = null;
+  els.fileStatus.textContent = `${vesselName} deleted`;
+  logAgentEvent("Agent vessel deleted", `${vesselName} source row ${row.sourceRow}`);
   render();
 }
 
 els.fileInput.addEventListener("change", handleUpload);
+els.addVesselButton.addEventListener("click", openNewVesselEditor);
 els.resetButton.addEventListener("click", resetSavedRows);
 els.searchInput.addEventListener("input", (event) => {
   state.search = event.target.value;
@@ -693,6 +815,7 @@ els.warningsToggle.addEventListener("click", () => {
 els.warningsPanel.addEventListener("click", handleWarningClick);
 els.calendarBody.addEventListener("click", handleCalendarClick);
 els.editForm.addEventListener("submit", handleEditSubmit);
+els.deleteVesselButton.addEventListener("click", handleDeleteVessel);
 els.closeEditButton.addEventListener("click", closeEditor);
 els.cancelEditButton.addEventListener("click", closeEditor);
 
