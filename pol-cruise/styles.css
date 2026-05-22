@@ -51,27 +51,6 @@ button {
   gap: 20px;
 }
 
-.tool-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.tool-tab {
-  min-height: 42px;
-  border-radius: 8px;
-  padding: 0 16px;
-  color: var(--ink);
-  background: #e8eee9;
-  font-weight: 800;
-}
-
-.tool-tab[aria-selected="true"] {
-  color: #fff;
-  background: var(--accent);
-}
-
 .tab-panel {
   width: min(1220px, 100%);
   margin: 0 auto;
@@ -114,207 +93,6 @@ h2 {
   font-size: clamp(26px, 3vw, 42px);
   line-height: 1.05;
   letter-spacing: 0;
-}
-
-.distance-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  gap: 16px;
-  align-items: start;
-}
-
-.calculator,
-.source-panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.calculator {
-  padding: clamp(22px, 4vw, 40px);
-}
-
-.masthead {
-  max-width: 720px;
-}
-
-.lede,
-.source-panel p:not(.eyebrow) {
-  margin: 14px 0 0;
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-.route-form {
-  margin-top: 30px;
-}
-
-.field-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr);
-  gap: 14px;
-  align-items: end;
-}
-
-.field-grid.compact {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 18px;
-}
-
-.field {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.field span:first-child {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 750;
-}
-
-.field select,
-.field input {
-  width: 100%;
-  min-height: 52px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-  font-weight: 650;
-  padding: 0 14px;
-  outline: none;
-}
-
-.field select:focus,
-.field input:focus,
-.icon-button:focus-visible {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(18, 110, 90, 0.18);
-}
-
-.unit-input {
-  position: relative;
-}
-
-.unit-input input {
-  padding-right: 54px;
-}
-
-.unit-input span {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.icon-button {
-  width: 52px;
-  height: 52px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-}
-
-.icon-button:hover {
-  background: #d6eae4;
-}
-
-.swap-mark {
-  position: relative;
-  width: 28px;
-  height: 20px;
-}
-
-.swap-mark::before,
-.swap-mark::after {
-  content: "";
-  position: absolute;
-  width: 22px;
-  height: 7px;
-  border-color: var(--accent-strong);
-  border-style: solid;
-}
-
-.swap-mark::before {
-  top: 1px;
-  left: 1px;
-  border-width: 2px 2px 0 0;
-}
-
-.swap-mark::after {
-  right: 1px;
-  bottom: 1px;
-  border-width: 0 0 2px 2px;
-}
-
-.lookup-note {
-  min-height: 24px;
-  margin: 16px 0 0;
-  color: var(--muted);
-  font-weight: 650;
-}
-
-.lookup-note.warning {
-  color: var(--warn);
-}
-
-.result-panel {
-  margin-top: 28px;
-  display: grid;
-  grid-template-columns: 1.25fr 1fr 1fr;
-  gap: 12px;
-}
-
-.result-panel > div {
-  min-height: 124px;
-  padding: 20px;
-  background: var(--ink);
-  color: #fff;
-  border-radius: 8px;
-  display: grid;
-  align-content: space-between;
-}
-
-.metric-label {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.result-panel strong {
-  font-size: clamp(23px, 3vw, 38px);
-  line-height: 1.1;
-  overflow-wrap: anywhere;
-}
-
-#eta-result {
-  font-size: clamp(18px, 2vw, 25px);
-  line-height: 1.2;
-}
-
-.source-panel {
-  padding: 20px;
-  display: grid;
-  gap: 18px;
-}
-
-.source-panel img {
-  width: 100%;
-  max-height: 610px;
-  object-fit: contain;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
 }
 
 .actions {
@@ -645,26 +423,13 @@ tbody tr:nth-child(even) {
     flex-direction: column;
   }
 
-  .tool-tabs,
   .actions {
     justify-content: flex-start;
   }
 
   .import-panel,
-  .distance-layout,
-  .field-grid,
-  .field-grid.compact,
-  .result-panel,
   .summary-strip {
     grid-template-columns: 1fr;
-  }
-
-  .icon-button {
-    width: 100%;
-  }
-
-  .result-panel > div {
-    min-height: 96px;
   }
 
   progress {

@@ -8,108 +8,23 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script defer src="../shared-store.js?v=20260523-shared-store-1"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script defer src="./distance.js"></script>
-    <script defer src="./app.js?v=20260523-shared-store-1"></script>
-    <script defer src="./tabs.js"></script>
+    <script defer src="./app.js?v=20260523-ship-count-only"></script>
   </head>
   <body>
     <main class="app-shell">
       <header class="suite-header">
         <div>
           <p class="eyebrow">Port Otago cruise tools</p>
-          <h1>Coastal operations workspace</h1>
+          <h1>Ship Count Calendar</h1>
         </div>
-        <nav class="tool-tabs" aria-label="Web app tabs">
-          <button id="distanceTab" type="button" class="tool-tab" aria-controls="distancePanel" aria-selected="true">Distance Calculator</button>
-          <button id="calendarTab" type="button" class="tool-tab" aria-controls="calendarPanel" aria-selected="false">Ship Count Calendar</button>
-        </nav>
       </header>
 
-      <section id="distancePanel" class="tab-panel active" role="tabpanel" aria-labelledby="distanceTab">
-        <div class="distance-layout">
-          <section class="calculator" aria-labelledby="distance-title">
-            <div class="masthead">
-              <p class="eyebrow">New Zealand coastal distances</p>
-              <h2 id="distance-title">Port-to-port time calculator</h2>
-              <p class="lede">Choose Port A and Port B, set vessel speed in knots, and calculate voyage time from the coastal-distance table.</p>
-            </div>
-
-            <form class="route-form" id="route-form">
-              <div class="field-grid">
-                <label class="field">
-                  <span>Port A</span>
-                  <select id="port-a" name="port-a"></select>
-                </label>
-
-                <button class="icon-button" id="swap-ports" type="button" aria-label="Swap ports" title="Swap ports">
-                  <span class="swap-mark" aria-hidden="true"></span>
-                </button>
-
-                <label class="field">
-                  <span>Port B</span>
-                  <select id="port-b" name="port-b"></select>
-                </label>
-              </div>
-
-              <div class="field-grid compact">
-                <label class="field">
-                  <span>Distance</span>
-                  <div class="unit-input">
-                    <input id="distance" name="distance" type="number" inputmode="decimal" min="0" step="0.1" />
-                    <span>NM</span>
-                  </div>
-                </label>
-
-                <label class="field">
-                  <span>Speed</span>
-                  <div class="unit-input">
-                    <input id="speed" name="speed" type="number" inputmode="decimal" min="0" step="0.1" value="12" />
-                    <span>kn</span>
-                  </div>
-                </label>
-
-                <label class="field">
-                  <span>Departure</span>
-                  <input id="departure" name="departure" type="datetime-local" />
-                </label>
-              </div>
-
-              <p class="lookup-note" id="lookup-note" role="status"></p>
-            </form>
-
-            <section class="result-panel" aria-live="polite">
-              <div>
-                <span class="metric-label">Voyage time</span>
-                <strong id="time-result">--</strong>
-              </div>
-              <div>
-                <span class="metric-label">Decimal hours</span>
-                <strong id="hours-result">--</strong>
-              </div>
-              <div>
-                <span class="metric-label">ETA</span>
-                <strong id="eta-result">--</strong>
-              </div>
-            </section>
-          </section>
-
-          <aside class="source-panel" aria-labelledby="source-title">
-            <div>
-              <p class="eyebrow">Source reference</p>
-              <h2 id="source-title">Coastal distances table</h2>
-              <p>The calculator includes the port list and seeded distance lookups from the scanned table. If a pair is not seeded yet, enter the table distance manually in nautical miles.</p>
-            </div>
-            <img src="./coastal-distance-source.png" alt="Scanned coastal distances table for New Zealand ports" />
-          </aside>
-        </div>
-      </section>
-
-      <section id="calendarPanel" class="tab-panel" role="tabpanel" aria-labelledby="calendarTab" hidden>
+      <section id="calendarPanel" class="tab-panel active" role="tabpanel" aria-labelledby="calendarTitle">
         <div class="workspace">
         <header class="topbar">
           <div>
             <p class="eyebrow">Cruise cargo only</p>
-            <h2>Ship Count Calendar</h2>
+            <h2 id="calendarTitle">Ship Count Calendar</h2>
           </div>
           <div class="actions">
             <button id="exportCsvBtn" type="button" class="secondary-btn">Export CSV</button>
