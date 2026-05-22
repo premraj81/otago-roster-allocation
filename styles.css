@@ -1242,7 +1242,10 @@ tbody tr:hover > :not(.ship-cell) {
 }
 
 .ship-pill-inline.south-port-ship {
-  border-left-color: #137a3a;
+  background: linear-gradient(135deg, #fff4fb, #ffd9eb) !important;
+  border-color: #ef9fc5;
+  border-left-color: #db3f8a;
+  color: #7d164b;
 }
 
 .ship-variant-0 {
@@ -1295,7 +1298,7 @@ tbody tr:hover > :not(.ship-cell) {
 }
 
 .ship-pilot-badge.south-port-badge {
-  background: #137a3a;
+  background: linear-gradient(135deg, #db3f8a, #9f1f5f);
 }
 
 .ship-pilot-badge:empty {
@@ -1324,8 +1327,13 @@ tbody tr:hover > :not(.ship-cell) {
 }
 
 .milford-only-inline {
-  color: #1261b3;
+  background: #fff2a8;
+  border: 1px solid #e0c645;
+  border-radius: 999px;
+  color: #5f4b00;
+  display: inline-block;
   font-weight: 800;
+  padding: 0 4px;
 }
 
 .vessel-pilot-select {
