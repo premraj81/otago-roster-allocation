@@ -18,6 +18,7 @@ const DISPLAY_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const INITIAL_SEASONS = [2026, 2027, 2028, 2029, 2030];
 const NON_CRUISE_SHIPS = new Set(["fortunui", "hapinui", "pacinui"]);
 const CRUISE_COUNTS_STORAGE_KEY = "pol-cruise-counts-v1";
+const CRUISE_RECORDS_STORAGE_KEY = "pol-cruise-records-v1";
 const KNOWN_CRUISE_SHIPS = [
   "Anthem of the Seas",
   "Asuka II",
@@ -47,10 +48,12 @@ const KNOWN_CRUISE_SHIPS = [
 ];
 
 const state = {
-  records: [],
+  records: loadSavedRecords(),
   selectedSeason: 2026,
   pdfjs: null,
 };
+let sharedCruiseInitialized = false;
+let sharedCruiseRefreshInFlight = false;
 
 const els = {
   fileInput: document.querySelector("#fileInput"),
@@ -73,6 +76,70 @@ function setStatus(message, progress = null) {
   els.statusText.textContent = message;
   if (progress !== null) {
     els.ocrProgress.value = Math.max(0, Math.min(100, progress));
+  }
+}
+
+function reviveCruiseRecord(record) {
+  return {
+    ...record,
+    date: record.date ? new Date(record.date) : makeDate(Number(record.key?.slice(0, 4)) || 2026, 0, 1),
+  };
+}
+
+function serializeCruiseRecords(records) {
+  return JSON.parse(JSON.stringify(records || []));
+}
+
+function loadSavedRecords() {
+  try {
+    const saved = localStorage.getItem(CRUISE_RECORDS_STORAGE_KEY);
+    return saved ? JSON.parse(saved).map(reviveCruiseRecord) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCruiseRecords() {
+  const payload = serializeCruiseRecords(state.records);
+  localStorage.setItem(CRUISE_RECORDS_STORAGE_KEY, JSON.stringify(payload));
+
+  if (sharedCruiseInitialized) {
+    window.OtagoSharedStore?.save(CRUISE_RECORDS_STORAGE_KEY, payload).catch((error) => {
+      console.warn("Could not save cruise records to Supabase", error);
+    });
+  }
+}
+
+function cruiseRecordsChanged(a, b) {
+  return JSON.stringify(serializeCruiseRecords(a)) !== JSON.stringify(serializeCruiseRecords(b));
+}
+
+async function refreshSharedCruiseRecords({ seedIfMissing = false } = {}) {
+  if (sharedCruiseRefreshInFlight || !window.OtagoSharedStore?.isReady) return;
+  sharedCruiseRefreshInFlight = true;
+
+  try {
+    const remote = await window.OtagoSharedStore.load(CRUISE_RECORDS_STORAGE_KEY);
+    if (!remote.found) {
+      if (seedIfMissing) await window.OtagoSharedStore.save(CRUISE_RECORDS_STORAGE_KEY, serializeCruiseRecords(state.records));
+      sharedCruiseInitialized = true;
+      saveCruiseCounts();
+      return;
+    }
+
+    const nextRecords = (remote.data || []).map(reviveCruiseRecord);
+    sharedCruiseInitialized = true;
+
+    if (cruiseRecordsChanged(state.records, nextRecords)) {
+      state.records = nextRecords;
+      localStorage.setItem(CRUISE_RECORDS_STORAGE_KEY, JSON.stringify(serializeCruiseRecords(state.records)));
+      setStatus("Loaded shared POL cruise ship count.", 100);
+      render();
+    }
+  } catch (error) {
+    console.warn("Could not load shared cruise records", error);
+  } finally {
+    sharedCruiseRefreshInFlight = false;
   }
 }
 
@@ -530,6 +597,11 @@ function saveCruiseCounts() {
 
   try {
     localStorage.setItem(CRUISE_COUNTS_STORAGE_KEY, JSON.stringify(payload));
+    if (sharedCruiseInitialized) {
+      window.OtagoSharedStore?.save(CRUISE_COUNTS_STORAGE_KEY, payload).catch((error) => {
+        console.warn("Could not save cruise counts to Supabase", error);
+      });
+    }
     window.parent?.postMessage({ type: "pol-cruise-counts-updated" }, window.location.origin);
   } catch (error) {
     console.warn("Could not save cruise counts", error);
@@ -540,6 +612,7 @@ function render() {
   renderTabs();
   renderCalendar();
   updateRecordCount();
+  saveCruiseRecords();
   saveCruiseCounts();
 }
 
@@ -761,6 +834,9 @@ els.clearBtn.addEventListener("click", clearAll);
 els.dropZone.addEventListener("drop", (event) => handleFiles(event.dataTransfer.files));
 
 render();
+refreshSharedCruiseRecords({ seedIfMissing: true });
+setInterval(refreshSharedCruiseRecords, 5000);
+window.addEventListener("focus", () => refreshSharedCruiseRecords());
 
 window.cruiseCalendarDebug = {
   parseScheduleText,

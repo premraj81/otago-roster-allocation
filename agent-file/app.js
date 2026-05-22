@@ -2,6 +2,7 @@ const START = new Date(Date.UTC(2026, 9, 1));
 const END = new Date(Date.UTC(2027, 3, 30));
 const ROUTES = ["North Bound", "South Bound", "Bluff", "Lyttelton/Timaru", "Unclassified"];
 const STORAGE_KEY = "fiordland-calendar-rows-v1";
+let sharedRowsRefreshInFlight = false;
 
 const state = {
   rows: loadSavedRows() || window.FIORDLAND_INITIAL_ROWS || [],
@@ -24,11 +25,16 @@ function loadSavedRows() {
 
 function saveRows() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.rows));
+  window.OtagoSharedStore?.save(STORAGE_KEY, serializeRows(state.rows)).catch((error) => {
+    console.warn("Could not save Agent File rows to Supabase", error);
+  });
+  window.parent?.postMessage({ type: "agent-file-rows-updated" }, window.location.origin);
 }
 
 function resetSavedRows() {
   localStorage.removeItem(STORAGE_KEY);
   state.rows = window.FIORDLAND_INITIAL_ROWS || [];
+  saveRows();
   els.fileStatus.textContent = "Reset to preloaded Pilotage 2026-27 sheet";
   render();
 }
@@ -41,6 +47,39 @@ function reviveRowDates(row) {
     embarkDate: row.embarkDate ? new Date(row.embarkDate) : null,
     disembarkDate: row.disembarkDate ? new Date(row.disembarkDate) : null,
   };
+}
+
+function serializeRows(rows) {
+  return JSON.parse(JSON.stringify(rows || []));
+}
+
+function rowsChanged(a, b) {
+  return JSON.stringify(serializeRows(a)) !== JSON.stringify(serializeRows(b));
+}
+
+async function refreshSharedRows({ seedIfMissing = false } = {}) {
+  if (sharedRowsRefreshInFlight || !window.OtagoSharedStore?.isReady) return;
+  sharedRowsRefreshInFlight = true;
+
+  try {
+    const remote = await window.OtagoSharedStore.load(STORAGE_KEY);
+    if (!remote.found) {
+      if (seedIfMissing) await window.OtagoSharedStore.save(STORAGE_KEY, serializeRows(state.rows));
+      return;
+    }
+
+    const nextRows = (remote.data || []).map(reviveRowDates);
+    if (!rowsChanged(state.rows, nextRows)) return;
+
+    state.rows = nextRows;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeRows(state.rows)));
+    els.fileStatus.textContent = "Loaded shared vessel schedule";
+    render();
+  } catch (error) {
+    console.warn("Could not load shared Agent File rows", error);
+  } finally {
+    sharedRowsRefreshInFlight = false;
+  }
 }
 
 const els = {
@@ -522,3 +561,6 @@ els.cancelEditButton.addEventListener("click", closeEditor);
 
 buildMonthFilter();
 render();
+refreshSharedRows({ seedIfMissing: true });
+setInterval(refreshSharedRows, 5000);
+window.addEventListener("focus", () => refreshSharedRows());

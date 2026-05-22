@@ -104,6 +104,7 @@ let edits = loadEdits();
 let vesselAllocations = loadVesselAllocations();
 let vesselRows = loadAgentVesselRows();
 let polCruiseCounts = loadPolCruiseCounts();
+let remoteRefreshInFlight = false;
 const titleHeading = document.querySelector("h1");
 const seasonSelect = document.querySelector("#seasonSelect");
 const monthSelect = document.querySelector("#monthSelect");
@@ -208,6 +209,7 @@ function loadEdits() {
 
 function saveEdits() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(edits));
+  saveSharedState(STORAGE_KEY, edits);
 }
 
 function loadVesselAllocations() {
@@ -226,6 +228,7 @@ function loadVesselAllocations() {
 
 function saveVesselAllocations() {
   localStorage.setItem(VESSEL_ALLOCATION_KEY, JSON.stringify(vesselAllocations));
+  saveSharedState(VESSEL_ALLOCATION_KEY, vesselAllocations);
 }
 
 function loadAgentVesselRows() {
@@ -245,6 +248,108 @@ function loadPolCruiseCounts() {
     return payload.counts || {};
   } catch {
     return {};
+  }
+}
+
+function saveSharedState(key, data) {
+  window.OtagoSharedStore?.save(key, data).catch((error) => {
+    console.warn(`Could not save ${key} to Supabase`, error);
+  });
+}
+
+function normalizeVesselAllocations(raw) {
+  return Object.fromEntries(
+    Object.entries(raw || {}).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? value : value ? [value] : [],
+    ])
+  );
+}
+
+function serializeVesselRows(rows) {
+  return JSON.parse(JSON.stringify(rows || []));
+}
+
+function replaceLocalStorageJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function hasJsonChanged(a, b) {
+  return JSON.stringify(a) !== JSON.stringify(b);
+}
+
+async function seedOrLoadSharedState(key, localValue) {
+  const shared = window.OtagoSharedStore;
+  if (!shared?.isReady) return { value: null, found: false };
+
+  const remote = await shared.load(key);
+  if (!remote.found) {
+    await shared.save(key, localValue);
+    return { value: null, found: false };
+  }
+  return { value: remote.data, found: true };
+}
+
+async function refreshSharedState() {
+  if (remoteRefreshInFlight || !window.OtagoSharedStore?.isReady) return;
+  remoteRefreshInFlight = true;
+
+  try {
+    const [remoteEdits, remoteAllocations, remoteRows, remoteCounts] = await Promise.all([
+      seedOrLoadSharedState(STORAGE_KEY, edits),
+      seedOrLoadSharedState(VESSEL_ALLOCATION_KEY, vesselAllocations),
+      seedOrLoadSharedState(AGENT_FILE_STORAGE_KEY, serializeVesselRows(vesselRows)),
+      seedOrLoadSharedState(POL_CRUISE_COUNTS_KEY, { counts: polCruiseCounts }),
+    ]);
+
+    let shouldBuildTable = false;
+
+    if (remoteEdits.found && hasJsonChanged(edits, remoteEdits.value || {})) {
+      edits = remoteEdits.value || {};
+      replaceLocalStorageJson(STORAGE_KEY, edits);
+      shouldBuildTable = true;
+    }
+
+    if (remoteAllocations.found) {
+      const nextAllocations = normalizeVesselAllocations(remoteAllocations.value || {});
+      if (hasJsonChanged(vesselAllocations, nextAllocations)) {
+        vesselAllocations = nextAllocations;
+        replaceLocalStorageJson(VESSEL_ALLOCATION_KEY, vesselAllocations);
+        shouldBuildTable = true;
+      }
+    }
+
+    if (remoteRows.found) {
+      const nextRows = (remoteRows.value || []).map(reviveVesselRow);
+      if (hasJsonChanged(serializeVesselRows(vesselRows), serializeVesselRows(nextRows))) {
+        vesselRows = nextRows;
+        replaceLocalStorageJson(AGENT_FILE_STORAGE_KEY, serializeVesselRows(vesselRows));
+        shouldBuildTable = true;
+      }
+    }
+
+    if (remoteCounts.found) {
+      const nextCounts = remoteCounts.value?.counts || {};
+      if (hasJsonChanged(polCruiseCounts, nextCounts)) {
+        polCruiseCounts = nextCounts;
+        replaceLocalStorageJson(POL_CRUISE_COUNTS_KEY, remoteCounts.value || { counts: nextCounts });
+        shouldBuildTable = true;
+      }
+    }
+
+    if (shouldBuildTable) {
+      const shell = document.querySelector(".table-shell");
+      const left = shell.scrollLeft;
+      const top = shell.scrollTop;
+      buildTable();
+      shell.scrollLeft = left;
+      shell.scrollTop = top;
+      if (printItemsTab.classList.contains("active")) renderPrintItems();
+    }
+  } catch (error) {
+    console.warn("Could not refresh shared roster data", error);
+  } finally {
+    remoteRefreshInFlight = false;
   }
 }
 
@@ -1199,14 +1304,21 @@ window.addEventListener("storage", (event) => {
 window.addEventListener("message", (event) => {
   if (event.origin === window.location.origin && event.data?.type === "pol-cruise-counts-updated") {
     refreshPolCruiseCounts();
+    refreshSharedState();
+  }
+  if (event.origin === window.location.origin && event.data?.type === "agent-file-rows-updated") {
+    refreshVesselRowsFromAgent();
+    refreshSharedState();
   }
 });
 window.addEventListener("focus", () => {
   refreshVesselRowsFromAgent();
   refreshPolCruiseCounts();
+  refreshSharedState();
 });
 setInterval(refreshVesselRowsFromAgent, 1500);
 setInterval(refreshPolCruiseCounts, 1500);
+setInterval(refreshSharedState, 5000);
 rosterBody.addEventListener("change", (event) => {
   if (event.target.matches(".cell-select")) updateCell(event.target);
   if (event.target.matches(".vessel-pilot-select")) updateVesselAllocation(event.target);
@@ -1220,3 +1332,4 @@ buildSeasonSelect();
 updateSeasonTitle();
 buildMonthSelect();
 buildTable();
+refreshSharedState();
