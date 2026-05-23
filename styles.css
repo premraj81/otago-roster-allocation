@@ -131,6 +131,25 @@ h1 {
   justify-content: flex-end;
 }
 
+.save-version-button {
+  background: linear-gradient(135deg, var(--teal), #0b84b3);
+  border: 0;
+  border-radius: 10px;
+  box-shadow: var(--shadow-soft);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.save-version-button:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
 .topbar label {
   color: rgba(255, 255, 255, 0.78);
 }
@@ -770,6 +789,64 @@ h1 {
   font-weight: 800;
 }
 
+.version-modal-card {
+  max-width: 760px;
+}
+
+.version-details {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.version-stat-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.version-stat-grid span {
+  background: #f7fbfd;
+  border: 1px solid #d6e3ea;
+  border-radius: 10px;
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 3px;
+  padding: 10px;
+}
+
+.version-stat-grid strong {
+  color: var(--navy);
+  font-size: 20px;
+}
+
+.version-json {
+  display: grid;
+  gap: 8px;
+}
+
+.version-json h3 {
+  color: var(--teal);
+  font-size: 12px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.version-json pre {
+  background: #111827;
+  border-radius: 10px;
+  color: #d1fae5;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
 .pilot-record-table th,
 .pilot-record-table td {
   min-width: 170px;
@@ -818,6 +895,23 @@ h1 {
   border-color: #d78068;
 }
 
+.event-row-actions {
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.event-view-button {
+  background: #edf7fb;
+  border: 1px solid #b9d7e1;
+  border-radius: 999px;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 26px;
+  padding: 0 10px;
+}
+
 .event-type {
   background: #eef5fb;
   border: 1px solid #cbdff0;
@@ -845,6 +939,12 @@ h1 {
   background: #f2f0fb;
   border-color: #d2caef;
   color: #40327d;
+}
+
+.event-type-version {
+  background: #edfdf7;
+  border-color: #abe6cf;
+  color: #0f6b48;
 }
 
 .event-empty {

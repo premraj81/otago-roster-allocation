@@ -3,6 +3,7 @@ const VESSEL_ALLOCATION_KEY = "otago-vessel-pilot-allocations-v1";
 const AGENT_FILE_STORAGE_KEY = "fiordland-calendar-rows-v1";
 const POL_CRUISE_COUNTS_KEY = "pol-cruise-counts-v1";
 const EVENT_LOG_STORAGE_KEY = "otago-event-log-v1";
+const VERSION_HISTORY_STORAGE_KEY = "otago-version-history-v1";
 const SOUTH_PORT_ALLOCATION = "SOUTH_PORT";
 
 const pilots = [
@@ -133,6 +134,7 @@ let vesselAllocations = loadVesselAllocations();
 let vesselRows = loadAgentVesselRows();
 let polCruiseCounts = loadPolCruiseCounts();
 let eventLog = loadEventLog();
+let versionHistory = loadVersionHistory();
 let remoteRefreshInFlight = false;
 let activeWorkbookSourceRow = null;
 let lastVesselRowsSaveAt = 0;
@@ -140,6 +142,7 @@ let activeTabName = "workbook";
 let rosterNeedsRebuild = true;
 let vesselRenderCache = null;
 const rosterSubtitle = document.querySelector("#rosterSubtitle");
+const saveVersionButton = document.querySelector("#saveVersionButton");
 const seasonSelect = document.querySelector("#seasonSelect");
 const monthSelect = document.querySelector("#monthSelect");
 const pilotHeader = document.querySelector("#pilotHeader");
@@ -176,6 +179,12 @@ const workbookNoteHistory = document.querySelector("#workbookNoteHistory");
 const workbookAuditHistory = document.querySelector("#workbookAuditHistory");
 const workbookLogClose = document.querySelector("#workbookLogClose");
 const workbookLogDone = document.querySelector("#workbookLogDone");
+const versionModal = document.querySelector("#versionModal");
+const versionModalTitle = document.querySelector("#versionModalTitle");
+const versionModalSubTitle = document.querySelector("#versionModalSubTitle");
+const versionDetails = document.querySelector("#versionDetails");
+const versionModalClose = document.querySelector("#versionModalClose");
+const versionModalDone = document.querySelector("#versionModalDone");
 const eventItemsBody = document.querySelector("#eventItemsBody");
 const eventSummary = document.querySelector("#eventSummary");
 const eventRefreshButton = document.querySelector("#eventRefreshButton");
@@ -320,6 +329,14 @@ function loadEventLog() {
   }
 }
 
+function loadVersionHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(VERSION_HISTORY_STORAGE_KEY)) || { versions: [] };
+  } catch {
+    return { versions: [] };
+  }
+}
+
 function saveSharedState(key, data) {
   if (!window.OtagoSharedStore?.save) return Promise.resolve(false);
   return window.OtagoSharedStore.save(key, data).catch((error) => {
@@ -458,8 +475,8 @@ async function refreshSharedState() {
   }
 }
 
-async function recordEvent(type, title, details = "") {
-  const event = { type, title, details };
+async function recordEvent(type, title, details = "", extra = {}) {
+  const event = { type, title, details, ...extra };
 
   try {
     if (window.OtagoSharedStore?.logEvent) {
@@ -505,6 +522,25 @@ async function refreshEventLog({ seedIfMissing = false } = {}) {
   }
 }
 
+async function refreshVersionHistory({ seedIfMissing = false } = {}) {
+  try {
+    const shared = window.OtagoSharedStore;
+    if (shared?.isReady) {
+      const remote = await shared.load(VERSION_HISTORY_STORAGE_KEY);
+      if (!remote.found && seedIfMissing) {
+        await shared.save(VERSION_HISTORY_STORAGE_KEY, versionHistory);
+      } else if (remote.found) {
+        versionHistory = remote.data || { versions: [] };
+        localStorage.setItem(VERSION_HISTORY_STORAGE_KEY, JSON.stringify(versionHistory));
+      }
+    } else {
+      versionHistory = loadVersionHistory();
+    }
+  } catch (error) {
+    console.warn("Could not refresh saved versions", error);
+  }
+}
+
 function formatEventTime(value) {
   const date = value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return "";
@@ -530,7 +566,12 @@ function renderEvents() {
               <span class="event-type event-type-${escapeHtml(event.type || "general")}">${escapeHtml(event.title || "Event")}</span>
             </td>
             <td>${escapeHtml(event.details || "")}</td>
-            <td><button class="event-delete-button" type="button" data-event-id="${escapeHtml(event.id || "")}">Clear</button></td>
+            <td>
+              <div class="event-row-actions">
+                ${event.type === "version" ? `<button class="event-view-button" type="button" data-version-id="${escapeHtml(event.versionId || "")}">View</button>` : ""}
+                <button class="event-delete-button" type="button" data-event-id="${escapeHtml(event.id || "")}">Clear</button>
+              </div>
+            </td>
           </tr>
         `)
         .join("")
@@ -568,6 +609,101 @@ async function clearAllEvents() {
   } catch (error) {
     console.warn("Could not clear all events", error);
   }
+}
+
+function savedVersionSnapshot() {
+  return {
+    seasonStart: selectedSeasonStart,
+    seasonLabel: seasonLabel(selectedSeasonStart),
+    edits: JSON.parse(JSON.stringify(edits || {})),
+    vesselAllocations: JSON.parse(JSON.stringify(vesselAllocations || {})),
+    vesselRows: serializeVesselRows(vesselRows),
+    polCruiseCounts: JSON.parse(JSON.stringify(polCruiseCounts || {})),
+  };
+}
+
+function savedVersionSummary(snapshot) {
+  const vesselCount = (snapshot.vesselRows || []).length;
+  const allocatedCount = Object.values(snapshot.vesselAllocations || {}).filter((value) => {
+    return Array.isArray(value) ? value.length : Boolean(value);
+  }).length;
+  const rosterEditCount = Object.keys(snapshot.edits || {}).length;
+  const polCountDays = Object.keys(snapshot.polCruiseCounts || {}).filter((key) => Number(snapshot.polCruiseCounts[key]) > 0).length;
+  return { vesselCount, allocatedCount, rosterEditCount, polCountDays };
+}
+
+async function saveRosterVersion() {
+  saveVersionButton.disabled = true;
+  const previousText = saveVersionButton.textContent;
+  saveVersionButton.textContent = "Saving...";
+  try {
+    await refreshVersionHistory({ seedIfMissing: true });
+    const versions = versionHistory.versions || [];
+    const number = versions.reduce((max, version) => Math.max(max, Number(version.number) || 0), 0) + 1;
+    const snapshot = savedVersionSnapshot();
+    const summary = savedVersionSummary(snapshot);
+    const savedAt = new Date().toISOString();
+    const version = {
+      id: `version-${number}-${Date.now()}`,
+      number,
+      savedAt,
+      summary,
+      snapshot,
+    };
+    versionHistory = {
+      versions: [version, ...versions].slice(0, 100),
+    };
+    localStorage.setItem(VERSION_HISTORY_STORAGE_KEY, JSON.stringify(versionHistory));
+    await saveSharedState(VERSION_HISTORY_STORAGE_KEY, versionHistory);
+    await recordEvent(
+      "version",
+      `Version ${number} saved`,
+      `${formatEventTime(savedAt)} - ${summary.vesselCount} vessels, ${summary.allocatedCount} vessel allocations, ${summary.rosterEditCount} roster edits`,
+      { versionId: version.id, versionNumber: number }
+    );
+    saveVersionButton.textContent = `Saved V${number}`;
+    setTimeout(() => {
+      saveVersionButton.textContent = previousText;
+    }, 1800);
+  } catch (error) {
+    console.warn("Could not save roster version", error);
+    saveVersionButton.textContent = "Save failed";
+    setTimeout(() => {
+      saveVersionButton.textContent = previousText;
+    }, 2200);
+  } finally {
+    saveVersionButton.disabled = false;
+  }
+}
+
+function latestVersionById(versionId) {
+  return (versionHistory.versions || []).find((version) => String(version.id) === String(versionId));
+}
+
+async function openVersionModal(versionId) {
+  await refreshVersionHistory();
+  const version = latestVersionById(versionId);
+  if (!version) return;
+  const summary = version.summary || savedVersionSummary(version.snapshot || {});
+  versionModalTitle.textContent = `Version ${version.number}`;
+  versionModalSubTitle.textContent = `Saved ${formatEventTime(version.savedAt)}`;
+  versionDetails.innerHTML = `
+    <div class="version-stat-grid">
+      <span><strong>${escapeHtml(summary.vesselCount ?? 0)}</strong> vessels</span>
+      <span><strong>${escapeHtml(summary.allocatedCount ?? 0)}</strong> vessel allocations</span>
+      <span><strong>${escapeHtml(summary.rosterEditCount ?? 0)}</strong> roster edits</span>
+      <span><strong>${escapeHtml(summary.polCountDays ?? 0)}</strong> POL count days</span>
+    </div>
+    <div class="version-json">
+      <h3>Saved State</h3>
+      <pre>${escapeHtml(JSON.stringify(version.snapshot || {}, null, 2))}</pre>
+    </div>
+  `;
+  versionModal.classList.remove("hidden");
+}
+
+function closeVersionModal() {
+  versionModal.classList.add("hidden");
 }
 
 function reviveVesselRow(row) {
@@ -1955,6 +2091,7 @@ function switchTab(tabName) {
 seasonSelect.addEventListener("change", () => {
   setRosterSeason(Number(seasonSelect.value));
 });
+saveVersionButton.addEventListener("click", saveRosterVersion);
 monthSelect.addEventListener("change", () => {
   scrollToDate(monthSelect.value);
 });
@@ -1972,13 +2109,20 @@ workbookModalCancel.addEventListener("click", closeWorkbookEditModal);
 workbookDeleteVisit.addEventListener("click", deleteWorkbookVisit);
 workbookLogClose.addEventListener("click", closeWorkbookLogModal);
 workbookLogDone.addEventListener("click", closeWorkbookLogModal);
+versionModalClose.addEventListener("click", closeVersionModal);
+versionModalDone.addEventListener("click", closeVersionModal);
 workbookVesselModal.addEventListener("click", (event) => {
   if (event.target === workbookVesselModal) closeWorkbookEditModal();
 });
 workbookLogModal.addEventListener("click", (event) => {
   if (event.target === workbookLogModal) closeWorkbookLogModal();
 });
+versionModal.addEventListener("click", (event) => {
+  if (event.target === versionModal) closeVersionModal();
+});
 eventItemsBody.addEventListener("click", (event) => {
+  const viewButton = event.target.closest(".event-view-button");
+  if (viewButton) openVersionModal(viewButton.dataset.versionId);
   const button = event.target.closest(".event-delete-button");
   if (button) clearEventRecord(button.dataset.eventId);
 });
@@ -2037,3 +2181,4 @@ buildMonthSelect();
 renderWorkbook();
 refreshSharedState();
 refreshEventLog({ seedIfMissing: true });
+refreshVersionHistory({ seedIfMissing: true });

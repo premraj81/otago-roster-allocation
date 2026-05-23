@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Otago Pilot Roster 2026-27</title>
-    <link rel="stylesheet" href="styles.css?v=20260523-performance-1" />
+    <link rel="stylesheet" href="styles.css?v=20260523-version-save-2" />
   </head>
   <body>
     <main class="app">
@@ -19,6 +19,7 @@
           </div>
         </div>
         <div class="toolbar" aria-label="Roster controls">
+          <button class="save-version-button" id="saveVersionButton" type="button">Save Version</button>
           <label>
             Season
             <select id="seasonSelect"></select>
@@ -390,9 +391,26 @@
       </div>
     </div>
 
+    <div class="vessel-modal hidden" id="versionModal" role="dialog" aria-modal="true" aria-labelledby="versionModalTitle">
+      <div class="vessel-modal-card version-modal-card">
+        <header class="vessel-modal-head">
+          <div>
+            <p class="eyebrow">Saved roster version</p>
+            <h2 id="versionModalTitle">Version</h2>
+            <p id="versionModalSubTitle"></p>
+          </div>
+          <button class="modal-close-button" id="versionModalClose" type="button" aria-label="Close">x</button>
+        </header>
+        <div class="version-details" id="versionDetails"></div>
+        <footer class="vessel-modal-actions">
+          <button class="primary-action-button" id="versionModalDone" type="button">Close</button>
+        </footer>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="shared-store.js?v=20260523-events-1"></script>
     <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
-    <script src="script.js?v=20260523-performance-1"></script>
+    <script src="script.js?v=20260523-version-save-2"></script>
   </body>
 </html>
