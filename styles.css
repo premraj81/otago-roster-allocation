@@ -1686,7 +1686,7 @@ tbody .date-col {
     border-color 120ms ease,
     box-shadow 120ms ease,
     transform 120ms ease;
-  width: 100%;
+  width: 30px;
 }
 
 .cell-select:hover {
