@@ -135,6 +135,7 @@ let polCruiseCounts = loadPolCruiseCounts();
 let eventLog = loadEventLog();
 let remoteRefreshInFlight = false;
 let activeWorkbookSourceRow = null;
+let lastVesselRowsSaveAt = 0;
 const rosterSubtitle = document.querySelector("#rosterSubtitle");
 const seasonSelect = document.querySelector("#seasonSelect");
 const monthSelect = document.querySelector("#monthSelect");
@@ -316,8 +317,10 @@ function loadEventLog() {
 }
 
 function saveSharedState(key, data) {
-  window.OtagoSharedStore?.save(key, data).catch((error) => {
+  if (!window.OtagoSharedStore?.save) return Promise.resolve(false);
+  return window.OtagoSharedStore.save(key, data).catch((error) => {
     console.warn(`Could not save ${key} to Supabase`, error);
+    return false;
   });
 }
 
@@ -334,10 +337,12 @@ function serializeVesselRows(rows) {
   return JSON.parse(JSON.stringify(rows || []));
 }
 
-function saveVesselRows() {
+async function saveVesselRows() {
+  lastVesselRowsSaveAt = Date.now();
   const payload = serializeVesselRows(vesselRows);
   localStorage.setItem(AGENT_FILE_STORAGE_KEY, JSON.stringify(payload));
-  saveSharedState(AGENT_FILE_STORAGE_KEY, payload);
+  await saveSharedState(AGENT_FILE_STORAGE_KEY, payload);
+  lastVesselRowsSaveAt = Date.now();
   window.postMessage({ type: "agent-file-rows-updated" }, window.location.origin);
 }
 
@@ -390,7 +395,7 @@ async function refreshSharedState() {
       }
     }
 
-    if (remoteRows.found) {
+    if (remoteRows.found && Date.now() - lastVesselRowsSaveAt > 8000) {
       const nextRows = (remoteRows.value || []).map(reviveVesselRow);
       if (hasJsonChanged(serializeVesselRows(vesselRows), serializeVesselRows(nextRows))) {
         vesselRows = nextRows;
@@ -1299,7 +1304,7 @@ function modalFormValues() {
   };
 }
 
-function applyWorkbookVesselEdit(event) {
+async function applyWorkbookVesselEdit(event) {
   event.preventDefault();
   const row = findVesselRowBySourceRow(activeWorkbookSourceRow);
   if (!row) return;
@@ -1347,7 +1352,7 @@ function applyWorkbookVesselEdit(event) {
   }
 
   changes.forEach((change) => row.auditLog.unshift(auditEntry(change)));
-  saveVesselRows();
+  await saveVesselRows();
   buildTable();
   renderWorkbook();
   recordEvent("vessel", "Workbook vessel updated", `${row.vessel || "Vessel"}: ${changes.join("; ")}`);
