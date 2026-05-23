@@ -136,6 +136,9 @@ let eventLog = loadEventLog();
 let remoteRefreshInFlight = false;
 let activeWorkbookSourceRow = null;
 let lastVesselRowsSaveAt = 0;
+let activeTabName = "workbook";
+let rosterNeedsRebuild = true;
+let vesselRenderCache = null;
 const rosterSubtitle = document.querySelector("#rosterSubtitle");
 const seasonSelect = document.querySelector("#seasonSelect");
 const monthSelect = document.querySelector("#monthSelect");
@@ -355,6 +358,33 @@ function hasJsonChanged(a, b) {
   return JSON.stringify(a) !== JSON.stringify(b);
 }
 
+function invalidateVesselRenderCache() {
+  vesselRenderCache = null;
+}
+
+function rebuildRosterPreservingScroll() {
+  const shell = document.querySelector(".table-shell");
+  const left = shell?.scrollLeft || 0;
+  const top = shell?.scrollTop || 0;
+  buildTable();
+  if (shell) {
+    shell.scrollLeft = left;
+    shell.scrollTop = top;
+  }
+  rosterNeedsRebuild = false;
+}
+
+function applyDataChangeToActiveViews({ rows = false, counts = false, records = false } = {}) {
+  if (activeTabName === "roster") {
+    rebuildRosterPreservingScroll();
+  } else if (rows || counts) {
+    rosterNeedsRebuild = true;
+  }
+
+  if (rows && activeTabName === "workbook") renderWorkbook();
+  if ((rows || records) && activeTabName === "printItems") renderPrintItems();
+}
+
 async function seedOrLoadSharedState(key, localValue) {
   const shared = window.OtagoSharedStore;
   if (!shared?.isReady) return { value: null, found: false };
@@ -379,12 +409,14 @@ async function refreshSharedState() {
       seedOrLoadSharedState(POL_CRUISE_COUNTS_KEY, { counts: polCruiseCounts }),
     ]);
 
-    let shouldBuildTable = false;
+    let rowsChanged = false;
+    let countsChanged = false;
+    let recordsChanged = false;
 
     if (remoteEdits.found && hasJsonChanged(edits, remoteEdits.value || {})) {
       edits = remoteEdits.value || {};
       replaceLocalStorageJson(STORAGE_KEY, edits);
-      shouldBuildTable = true;
+      rowsChanged = true;
     }
 
     if (remoteAllocations.found) {
@@ -392,7 +424,9 @@ async function refreshSharedState() {
       if (hasJsonChanged(vesselAllocations, nextAllocations)) {
         vesselAllocations = nextAllocations;
         replaceLocalStorageJson(VESSEL_ALLOCATION_KEY, vesselAllocations);
-        shouldBuildTable = true;
+        invalidateVesselRenderCache();
+        rowsChanged = true;
+        recordsChanged = true;
       }
     }
 
@@ -401,7 +435,9 @@ async function refreshSharedState() {
       if (hasJsonChanged(serializeVesselRows(vesselRows), serializeVesselRows(nextRows))) {
         vesselRows = nextRows;
         replaceLocalStorageJson(AGENT_FILE_STORAGE_KEY, serializeVesselRows(vesselRows));
-        shouldBuildTable = true;
+        invalidateVesselRenderCache();
+        rowsChanged = true;
+        recordsChanged = true;
       }
     }
 
@@ -410,20 +446,11 @@ async function refreshSharedState() {
       if (hasJsonChanged(polCruiseCounts, nextCounts)) {
         polCruiseCounts = nextCounts;
         replaceLocalStorageJson(POL_CRUISE_COUNTS_KEY, remoteCounts.value || { counts: nextCounts });
-        shouldBuildTable = true;
+        countsChanged = true;
       }
     }
 
-    if (shouldBuildTable) {
-      const shell = document.querySelector(".table-shell");
-      const left = shell.scrollLeft;
-      const top = shell.scrollTop;
-      buildTable();
-      shell.scrollLeft = left;
-      shell.scrollTop = top;
-      if (printItemsTab.classList.contains("active")) renderPrintItems();
-      if (workbookTab.classList.contains("active")) renderWorkbook();
-    }
+    if (rowsChanged || countsChanged || recordsChanged) applyDataChangeToActiveViews({ rows: rowsChanged, counts: countsChanged, records: recordsChanged });
   } catch (error) {
     console.warn("Could not refresh shared roster data", error);
   } finally {
@@ -561,12 +588,8 @@ function refreshVesselRowsFromAgent() {
   if (before === after) return;
 
   vesselRows = nextRows;
-  const shell = document.querySelector(".table-shell");
-  const left = shell.scrollLeft;
-  const top = shell.scrollTop;
-  buildTable();
-  shell.scrollLeft = left;
-  shell.scrollTop = top;
+  invalidateVesselRenderCache();
+  applyDataChangeToActiveViews({ rows: true, records: true });
 }
 
 function refreshPolCruiseCounts() {
@@ -576,14 +599,7 @@ function refreshPolCruiseCounts() {
   if (before === after) return;
 
   polCruiseCounts = nextCounts;
-  const shell = document.querySelector(".table-shell");
-  const left = shell.scrollLeft;
-  const top = shell.scrollTop;
-  buildTable();
-  shell.scrollLeft = left;
-  shell.scrollTop = top;
-  if (workbookTab.classList.contains("active")) renderWorkbook();
-  if (printItemsTab.classList.contains("active")) renderPrintItems();
+  applyDataChangeToActiveViews({ counts: true });
 }
 
 function editKey(date, pilot) {
@@ -665,9 +681,11 @@ function setRosterSeason(startYear) {
   selectedSeasonStart = startYear;
   rosterStart = seasonStartDate(startYear);
   rosterEnd = seasonEndDate(startYear);
+  invalidateVesselRenderCache();
   updateSeasonTitle();
   buildMonthSelect();
-  buildTable();
+  if (activeTabName === "roster") rebuildRosterPreservingScroll();
+  else rosterNeedsRebuild = true;
   if (printItemsTab.classList.contains("active")) renderPrintItems();
   scrollToDate(dateKey(rosterStart));
 }
@@ -854,6 +872,7 @@ function updateVesselAllocation(select) {
     : assigned;
   if (normalized.length) vesselAllocations[key] = normalized;
   else delete vesselAllocations[key];
+  invalidateVesselRenderCache();
   saveVesselAllocations();
   const shell = document.querySelector(".table-shell");
   const left = shell.scrollLeft;
@@ -1352,6 +1371,7 @@ async function applyWorkbookVesselEdit(event) {
     return;
   }
 
+  invalidateVesselRenderCache();
   changes.forEach((change) => row.auditLog.unshift(auditEntry(change)));
   await saveVesselRows();
   buildTable();
@@ -1370,6 +1390,7 @@ async function deleteWorkbookVisit() {
   Object.keys(vesselAllocations).forEach((key) => {
     if (key === vesselAllocationKey(row) || key.startsWith(allocationPrefix)) delete vesselAllocations[key];
   });
+  invalidateVesselRenderCache();
   saveVesselAllocations();
   vesselRows = vesselRows.filter((item) => String(item.sourceRow) !== String(row.sourceRow));
   await saveVesselRows();
@@ -1595,14 +1616,50 @@ function escapeHtml(value) {
 
 function shipCellsForDate(date) {
   const key = dateKey(date);
-  const buckets = {
+  const cached = vesselRenderData().shipCellsByDate.get(key);
+  if (cached) return cached;
+  return [[], [], [], []];
+}
+
+function emptyShipBuckets() {
+  return {
     "North Bound": [],
     "South Bound": [],
     Unspecified: [],
     Comments: [],
   };
+}
 
-  vesselRowsForDate(key).forEach((row) => {
+function shipBucketList(buckets) {
+  return [
+    buckets["North Bound"],
+    buckets["South Bound"],
+    buckets.Unspecified,
+    buckets.Comments,
+  ];
+}
+
+function vesselRenderData() {
+  if (vesselRenderCache) return vesselRenderCache;
+
+  const assignmentByPilotDate = new Map();
+  const shipCellsByDate = new Map();
+
+  vesselRows.forEach((row) => {
+    const allocationKey = vesselAllocationKey(row);
+    const rosterDate = shipRosterDate(row);
+    const rosterKey = vesselDateKey(rosterDate);
+    const assignedPilots = vesselPilotsForAllocationKey(allocationKey)
+      .filter((code) => code && code !== SOUTH_PORT_ALLOCATION);
+
+    assignedPilots.forEach((pilotCode) => {
+      jobDatesForVessel(row, rosterDateFromAllocationKey(allocationKey)).forEach((jobDate) => {
+        assignmentByPilotDate.set(`${dateKey(jobDate)}:${pilotCode}`, `FP_${pilotCode}`);
+      });
+    });
+
+    if (!rosterKey || rosterDate < rosterStart || rosterDate > rosterEnd) return;
+    const buckets = shipCellsByDate.get(rosterKey) || emptyShipBuckets();
     const route = vesselCategory(row);
     const item = compactShipItem(row);
     if (route === "North Bound") buckets["North Bound"].push(item);
@@ -1619,18 +1676,14 @@ function shipCellsForDate(date) {
         allocatable: false,
       });
     }
+    shipCellsByDate.set(rosterKey, buckets);
   });
 
-  return [
-    buckets["North Bound"],
-    buckets["South Bound"],
-    buckets.Unspecified,
-    buckets.Comments,
-  ];
-}
-
-function vesselRowsForDate(key) {
-  return vesselRows.filter((row) => vesselDateKey(shipRosterDate(row)) === key);
+  vesselRenderCache = {
+    assignmentByPilotDate,
+    shipCellsByDate: new Map([...shipCellsByDate].map(([key, buckets]) => [key, shipBucketList(buckets)])),
+  };
+  return vesselRenderCache;
 }
 
 function shipRosterDate(row) {
@@ -1691,15 +1744,7 @@ function vesselAllocationKey(row) {
 }
 
 function vesselAssignmentValue(pilot, date) {
-  const key = dateKey(date);
-  const match = vesselRows.find((row) => {
-    const allocationKey = vesselAllocationKey(row);
-    if (!vesselPilotsForAllocationKey(allocationKey).includes(pilot.code)) return false;
-    return jobDatesForVessel(row, rosterDateFromAllocationKey(allocationKey)).some(
-      (jobDate) => dateKey(jobDate) === key
-    );
-  });
-  return match ? `FP_${pilot.code}` : "";
+  return vesselRenderData().assignmentByPilotDate.get(`${dateKey(date)}:${pilot.code}`) || "";
 }
 
 function vesselPilotsForRow(row) {
@@ -1890,10 +1935,8 @@ function scrollToDate(key) {
 }
 
 function switchTab(tabName) {
+  activeTabName = tabName;
   if (tabName === "roster" || tabName === "printItems" || tabName === "workbook") refreshVesselRowsFromAgent();
-  if (tabName === "printItems") renderPrintItems();
-  if (tabName === "workbook") renderWorkbook();
-  if (tabName === "events") refreshEventLog();
   tabButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === tabName);
   });
@@ -1903,6 +1946,10 @@ function switchTab(tabName) {
   printItemsTab.classList.toggle("active", tabName === "printItems");
   workbookTab.classList.toggle("active", tabName === "workbook");
   eventsTab.classList.toggle("active", tabName === "events");
+  if (tabName === "roster" && rosterNeedsRebuild) rebuildRosterPreservingScroll();
+  if (tabName === "printItems") renderPrintItems();
+  if (tabName === "workbook") renderWorkbook();
+  if (tabName === "events") refreshEventLog();
 }
 
 seasonSelect.addEventListener("change", () => {
@@ -1959,12 +2006,20 @@ window.addEventListener("focus", () => {
   refreshVesselRowsFromAgent();
   refreshPolCruiseCounts();
   refreshSharedState();
-  refreshEventLog();
+  if (activeTabName === "events") refreshEventLog();
 });
-setInterval(refreshVesselRowsFromAgent, 1500);
-setInterval(refreshPolCruiseCounts, 1500);
-setInterval(refreshSharedState, 5000);
-setInterval(refreshEventLog, 5000);
+setInterval(() => {
+  if (!document.hidden) refreshVesselRowsFromAgent();
+}, 8000);
+setInterval(() => {
+  if (!document.hidden && activeTabName === "roster") refreshPolCruiseCounts();
+}, 12000);
+setInterval(() => {
+  if (!document.hidden) refreshSharedState();
+}, 8000);
+setInterval(() => {
+  if (!document.hidden && activeTabName === "events") refreshEventLog();
+}, 10000);
 window.addEventListener("otago-event-log-updated", () => refreshEventLog());
 rosterBody.addEventListener("change", (event) => {
   if (event.target.matches(".cell-select")) updateCell(event.target);
@@ -1979,7 +2034,6 @@ buildPilotRecordSelect();
 buildSeasonSelect();
 updateSeasonTitle();
 buildMonthSelect();
-buildTable();
 renderWorkbook();
 refreshSharedState();
 refreshEventLog({ seedIfMissing: true });

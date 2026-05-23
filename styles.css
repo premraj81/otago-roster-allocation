@@ -332,6 +332,7 @@ h1 {
 .print-table-wrap,
 .event-table-wrap,
 .workbook-table-wrap {
+  contain: content;
   max-height: calc(100vh - 210px);
   overflow: auto;
 }
@@ -426,6 +427,7 @@ h1 {
 }
 
 .workbook-table {
+  contain: layout paint;
   min-width: 1580px;
 }
 
