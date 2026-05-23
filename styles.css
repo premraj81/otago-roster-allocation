@@ -667,7 +667,8 @@ h1 {
 }
 
 .primary-action-button,
-.ghost-action-button {
+.ghost-action-button,
+.danger-action-button {
   border-radius: 8px;
   cursor: pointer;
   font: inherit;
@@ -686,6 +687,16 @@ h1 {
   background: #d8e9fb;
   border: 1px solid #c2d6eb;
   color: #17212b;
+}
+
+.danger-action-button {
+  background: #fff1f2;
+  border: 1px solid #f2a6b3;
+  color: #b42318;
+}
+
+.modal-action-spacer {
+  flex: 1;
 }
 
 .vessel-log-layout {

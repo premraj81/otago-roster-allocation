@@ -164,6 +164,7 @@ const workbookVesselForm = document.querySelector("#workbookVesselForm");
 const workbookModalTitle = document.querySelector("#workbookModalTitle");
 const workbookModalClose = document.querySelector("#workbookModalClose");
 const workbookModalCancel = document.querySelector("#workbookModalCancel");
+const workbookDeleteVisit = document.querySelector("#workbookDeleteVisit");
 const workbookLogModal = document.querySelector("#workbookLogModal");
 const workbookLogTitle = document.querySelector("#workbookLogTitle");
 const workbookLogCompany = document.querySelector("#workbookLogCompany");
@@ -1359,6 +1360,26 @@ async function applyWorkbookVesselEdit(event) {
   closeWorkbookEditModal();
 }
 
+async function deleteWorkbookVisit() {
+  const row = findVesselRowBySourceRow(activeWorkbookSourceRow);
+  if (!row) return;
+  const vesselName = row.vessel || "this vessel visit";
+  if (!window.confirm(`Delete ${vesselName} from the schedule?`)) return;
+
+  const allocationPrefix = `${row.sourceRow}:`;
+  Object.keys(vesselAllocations).forEach((key) => {
+    if (key === vesselAllocationKey(row) || key.startsWith(allocationPrefix)) delete vesselAllocations[key];
+  });
+  saveVesselAllocations();
+  vesselRows = vesselRows.filter((item) => String(item.sourceRow) !== String(row.sourceRow));
+  await saveVesselRows();
+  buildTable();
+  renderWorkbook();
+  renderPrintItems();
+  recordEvent("vessel", "Workbook vessel deleted", `${vesselName} source row ${row.sourceRow}`);
+  closeWorkbookEditModal();
+}
+
 function openWorkbookLogModal(sourceRow) {
   const row = findVesselRowBySourceRow(sourceRow);
   if (!row) return;
@@ -1901,6 +1922,7 @@ workbookBody.addEventListener("click", handleWorkbookActionClick);
 workbookVesselForm.addEventListener("submit", applyWorkbookVesselEdit);
 workbookModalClose.addEventListener("click", closeWorkbookEditModal);
 workbookModalCancel.addEventListener("click", closeWorkbookEditModal);
+workbookDeleteVisit.addEventListener("click", deleteWorkbookVisit);
 workbookLogClose.addEventListener("click", closeWorkbookLogModal);
 workbookLogDone.addEventListener("click", closeWorkbookLogModal);
 workbookVesselModal.addEventListener("click", (event) => {
