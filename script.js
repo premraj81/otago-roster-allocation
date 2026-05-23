@@ -1958,5 +1958,6 @@ buildSeasonSelect();
 updateSeasonTitle();
 buildMonthSelect();
 buildTable();
+renderWorkbook();
 refreshSharedState();
 refreshEventLog({ seedIfMissing: true });
