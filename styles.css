@@ -41,6 +41,10 @@ body {
   font-family: "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .app {
   min-height: 100vh;
   padding: 12px;
@@ -478,10 +482,258 @@ h1 {
   color: #44515f;
 }
 
+.workbook-action-tabs {
+  display: inline-flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.workbook-action-tabs button {
+  background: #edf7fb;
+  border: 1px solid #b9d7e1;
+  border-radius: 999px;
+  color: var(--teal);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 900;
+  min-height: 24px;
+  padding: 3px 9px;
+}
+
+.workbook-action-tabs button:hover {
+  background: #dff1f7;
+  color: var(--navy);
+}
+
 .workbook-empty {
   color: var(--muted);
   font-weight: 800;
   text-align: center !important;
+}
+
+.vessel-modal {
+  align-items: center;
+  background: rgba(13, 33, 48, 0.42);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 18px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 50;
+}
+
+.vessel-modal-card {
+  background: #dff1fb;
+  border: 1px solid #b7d8e7;
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(13, 33, 48, 0.3);
+  color: #17212b;
+  max-height: calc(100vh - 36px);
+  max-width: 920px;
+  overflow: auto;
+  width: min(920px, 100%);
+}
+
+.vessel-log-card {
+  background: #ffffff;
+  max-width: 980px;
+}
+
+.vessel-modal-head {
+  align-items: center;
+  background: rgba(193, 222, 248, 0.82);
+  border-bottom: 1px solid #b7d8e7;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 18px 22px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.vessel-modal-head h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.vessel-modal-head p {
+  color: var(--muted);
+  font-weight: 800;
+  margin: 4px 0 0;
+}
+
+.modal-close-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #4b5c6b;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 24px;
+  font-weight: 300;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.vessel-edit-form {
+  display: grid;
+  gap: 22px;
+  padding: 22px;
+}
+
+.vessel-form-section {
+  display: grid;
+  gap: 14px;
+}
+
+.vessel-form-section h3,
+.vessel-log-layout h3 {
+  border-bottom: 1px solid #b7d8e7;
+  color: var(--teal);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0;
+  margin: 0;
+  padding-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.vessel-form-grid {
+  display: grid;
+  gap: 14px 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.vessel-form-grid label,
+.vessel-form-section label {
+  color: #425363;
+  display: grid;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+}
+
+.vessel-form-grid input,
+.vessel-form-grid select,
+.vessel-form-section textarea {
+  background: rgba(255, 255, 255, 0.46);
+  border: 1px solid #b7d0dc;
+  border-radius: 8px;
+  color: #17212b;
+  font: inherit;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.vessel-form-section textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.vessel-modal-actions {
+  align-items: center;
+  background: rgba(247, 249, 251, 0.9);
+  border-top: 1px solid #cbd6df;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 18px 22px;
+}
+
+.primary-action-button,
+.ghost-action-button {
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 0 20px;
+}
+
+.primary-action-button {
+  background: linear-gradient(135deg, #0f85c8, #3356d8);
+  border: 0;
+  color: #ffffff;
+}
+
+.ghost-action-button {
+  background: #d8e9fb;
+  border: 1px solid #c2d6eb;
+  color: #17212b;
+}
+
+.vessel-log-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 430px;
+}
+
+.vessel-log-layout section {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.vessel-log-layout section + section {
+  border-left: 1px solid #d8e0e8;
+}
+
+.vessel-log-layout h4 {
+  color: #8b97a3;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  margin: 12px 0 0;
+  text-transform: uppercase;
+}
+
+.latest-note {
+  background: #fff7c7;
+  border: 1px solid #f2d96e;
+  border-radius: 8px;
+  color: #594719;
+  font-weight: 800;
+  min-height: 58px;
+  padding: 14px;
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.history-card {
+  background: #f7f9fb;
+  border: 1px solid #d8e0e8;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.history-card-green {
+  background: #ecfdf3;
+  border-color: #bbefd0;
+}
+
+.history-card strong {
+  color: #5d6b7a;
+  font-size: 12px;
+}
+
+.history-card span {
+  color: #17212b;
+}
+
+.history-empty {
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .pilot-record-table th,
@@ -1541,6 +1793,16 @@ tbody tr.week-orange .cell-select {
 
   .vessel-panel {
     max-height: 420px;
+  }
+
+  .vessel-form-grid,
+  .vessel-log-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .vessel-log-layout section + section {
+    border-left: 0;
+    border-top: 1px solid #d8e0e8;
   }
 
   th,

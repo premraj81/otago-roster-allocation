@@ -106,6 +106,7 @@ let vesselRows = loadAgentVesselRows();
 let polCruiseCounts = loadPolCruiseCounts();
 let eventLog = loadEventLog();
 let remoteRefreshInFlight = false;
+let activeWorkbookSourceRow = null;
 const rosterSubtitle = document.querySelector("#rosterSubtitle");
 const seasonSelect = document.querySelector("#seasonSelect");
 const monthSelect = document.querySelector("#monthSelect");
@@ -129,6 +130,19 @@ const eventsTab = document.querySelector("#eventsTab");
 const workbookTab = document.querySelector("#workbookTab");
 const workbookBody = document.querySelector("#workbookBody");
 const workbookSummary = document.querySelector("#workbookSummary");
+const workbookVesselModal = document.querySelector("#workbookVesselModal");
+const workbookVesselForm = document.querySelector("#workbookVesselForm");
+const workbookModalTitle = document.querySelector("#workbookModalTitle");
+const workbookModalClose = document.querySelector("#workbookModalClose");
+const workbookModalCancel = document.querySelector("#workbookModalCancel");
+const workbookLogModal = document.querySelector("#workbookLogModal");
+const workbookLogTitle = document.querySelector("#workbookLogTitle");
+const workbookLogCompany = document.querySelector("#workbookLogCompany");
+const workbookLatestNote = document.querySelector("#workbookLatestNote");
+const workbookNoteHistory = document.querySelector("#workbookNoteHistory");
+const workbookAuditHistory = document.querySelector("#workbookAuditHistory");
+const workbookLogClose = document.querySelector("#workbookLogClose");
+const workbookLogDone = document.querySelector("#workbookLogDone");
 const eventItemsBody = document.querySelector("#eventItemsBody");
 const eventSummary = document.querySelector("#eventSummary");
 const eventRefreshButton = document.querySelector("#eventRefreshButton");
@@ -292,6 +306,13 @@ function serializeVesselRows(rows) {
   return JSON.parse(JSON.stringify(rows || []));
 }
 
+function saveVesselRows() {
+  const payload = serializeVesselRows(vesselRows);
+  localStorage.setItem(AGENT_FILE_STORAGE_KEY, JSON.stringify(payload));
+  saveSharedState(AGENT_FILE_STORAGE_KEY, payload);
+  window.postMessage({ type: "agent-file-rows-updated" }, window.location.origin);
+}
+
 function replaceLocalStorageJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
@@ -367,6 +388,7 @@ async function refreshSharedState() {
       shell.scrollLeft = left;
       shell.scrollTop = top;
       if (printItemsTab.classList.contains("active")) renderPrintItems();
+      if (workbookTab.classList.contains("active")) renderWorkbook();
     }
   } catch (error) {
     console.warn("Could not refresh shared roster data", error);
@@ -525,6 +547,8 @@ function refreshPolCruiseCounts() {
   buildTable();
   shell.scrollLeft = left;
   shell.scrollTop = top;
+  if (workbookTab.classList.contains("active")) renderWorkbook();
+  if (printItemsTab.classList.contains("active")) renderPrintItems();
 }
 
 function editKey(date, pilot) {
@@ -1057,7 +1081,12 @@ function renderWorkbook() {
             <td>${escapeHtml(row.driver)}</td>
             <td>${escapeHtml(row.mhDays)}</td>
             <td>${escapeHtml(row.launch)}</td>
-            <td>${escapeHtml(row.actions)}</td>
+            <td>
+              <div class="workbook-action-tabs">
+                <button type="button" data-workbook-action="edit" data-source-row="${escapeHtml(row.sourceRow)}">Edit</button>
+                <button type="button" data-workbook-action="log" data-source-row="${escapeHtml(row.sourceRow)}">Log</button>
+              </div>
+            </td>
           </tr>
         `)
         .join("")
@@ -1071,6 +1100,7 @@ function workbookItems() {
       if (!vesselClean(row.vessel) && !rosterDate) return null;
       const pilotsForRow = vesselPilotsForRow(row).filter((code) => code !== SOUTH_PORT_ALLOCATION);
       return {
+        sourceRow: row.sourceRow,
         status: vesselClean(row.status),
         vessel: vesselClean(row.vessel),
         company: vesselClean(row.company),
@@ -1114,6 +1144,191 @@ function workbookDate(value, fallback = null) {
       ? dateOnly(new Date(fallback))
       : null;
   return validDate && !Number.isNaN(validDate.getTime()) ? formatShortDate(validDate) : "";
+}
+
+function findVesselRowBySourceRow(sourceRow) {
+  return vesselRows.find((row) => String(row.sourceRow) === String(sourceRow));
+}
+
+function modalField(id) {
+  return document.querySelector(`#${id}`);
+}
+
+function setModalValue(id, value) {
+  const field = modalField(id);
+  if (field) field.value = value ?? "";
+}
+
+function selectOptionValue(id, value) {
+  const field = modalField(id);
+  if (!field) return;
+  const normalized = vesselClean(value).toLowerCase().replace(/[^a-z]/g, "");
+  const option = [...field.options].find((item) => item.value.toLowerCase().replace(/[^a-z]/g, "") === normalized);
+  field.value = option ? option.value : "";
+}
+
+function openWorkbookEditModal(sourceRow) {
+  const row = findVesselRowBySourceRow(sourceRow);
+  if (!row) return;
+  activeWorkbookSourceRow = sourceRow;
+  workbookModalTitle.textContent = `Edit ${row.vessel || "Vessel Visit"}`;
+  setModalValue("modalVessel", row.vessel);
+  setModalValue("modalCompany", row.company);
+  setModalValue("modalLength", row.length || row.loa);
+  setModalValue("modalBeam", row.beam);
+  setModalValue("modalImo", row.imo);
+  setModalValue("modalPilot", row.pilot);
+  setModalValue("modalTrainee", row.trainee);
+  setModalValue("modalService", row.service);
+  setModalValue("modalDirection", row.direction || vesselCategory(row));
+  selectOptionValue("modalStatus", row.status);
+  setModalValue("modalLecturer", row.lecturer);
+  selectOptionValue("modalDriver", row.driver);
+  setModalValue("modalMhDays", row.mhDays);
+  selectOptionValue("modalLaunch", row.launch);
+  setModalValue("modalNotes", row.notes);
+  setModalValue("modalPersonalInfo", row.personalInfo);
+  workbookVesselModal.classList.remove("hidden");
+}
+
+function closeWorkbookEditModal() {
+  activeWorkbookSourceRow = null;
+  workbookVesselModal.classList.add("hidden");
+}
+
+function vesselAuditLists(row) {
+  row.auditLog = Array.isArray(row.auditLog) ? row.auditLog : [];
+  row.noteHistory = Array.isArray(row.noteHistory) ? row.noteHistory : [];
+  return row;
+}
+
+function auditEntry(message) {
+  return {
+    at: new Date().toISOString(),
+    user: "Roster user",
+    message,
+  };
+}
+
+function auditText(entry) {
+  if (typeof entry === "string") return entry;
+  return entry?.message || "";
+}
+
+function auditTime(entry) {
+  const value = typeof entry === "string" ? "" : entry?.at;
+  return value ? formatEventTime(value) : "";
+}
+
+function auditUser(entry) {
+  return typeof entry === "string" ? "" : entry?.user || "Roster user";
+}
+
+function modalFormValues() {
+  return {
+    status: vesselClean(modalField("modalStatus")?.value),
+    vessel: vesselClean(modalField("modalVessel")?.value),
+    company: vesselClean(modalField("modalCompany")?.value),
+    length: vesselClean(modalField("modalLength")?.value),
+    beam: vesselClean(modalField("modalBeam")?.value),
+    imo: vesselClean(modalField("modalImo")?.value),
+    pilot: vesselClean(modalField("modalPilot")?.value),
+    trainee: vesselClean(modalField("modalTrainee")?.value),
+    service: vesselClean(modalField("modalService")?.value),
+    direction: vesselClean(modalField("modalDirection")?.value),
+    lecturer: vesselClean(modalField("modalLecturer")?.value),
+    driver: vesselClean(modalField("modalDriver")?.value),
+    mhDays: vesselClean(modalField("modalMhDays")?.value),
+    launch: vesselClean(modalField("modalLaunch")?.value),
+    notes: vesselClean(modalField("modalNotes")?.value),
+    personalInfo: vesselClean(modalField("modalPersonalInfo")?.value),
+  };
+}
+
+function applyWorkbookVesselEdit(event) {
+  event.preventDefault();
+  const row = findVesselRowBySourceRow(activeWorkbookSourceRow);
+  if (!row) return;
+  vesselAuditLists(row);
+
+  const values = modalFormValues();
+  const fields = [
+    ["status", "Status"],
+    ["vessel", "Vessel"],
+    ["company", "Company"],
+    ["length", "Length"],
+    ["beam", "Beam"],
+    ["imo", "IMO"],
+    ["pilot", "Pilot"],
+    ["trainee", "Trainee"],
+    ["service", "Service"],
+    ["direction", "Direction"],
+    ["lecturer", "Lecturer"],
+    ["driver", "Driver"],
+    ["mhDays", "MH Days"],
+    ["launch", "Launch"],
+    ["personalInfo", "Personal information"],
+  ];
+  const changes = [];
+
+  fields.forEach(([field, label]) => {
+    const previous = vesselClean(row[field]);
+    const next = values[field];
+    if (previous === next) return;
+    row[field] = next;
+    changes.push(`${label}: ${previous || "blank"} -> ${next || "blank"}`);
+  });
+
+  if (vesselClean(row.notes) !== values.notes) {
+    row.notes = values.notes;
+    if (values.notes) {
+      row.noteHistory.unshift(auditEntry(values.notes));
+    }
+    changes.push("Notes updated");
+  }
+
+  if (!changes.length) {
+    closeWorkbookEditModal();
+    return;
+  }
+
+  changes.forEach((change) => row.auditLog.unshift(auditEntry(change)));
+  saveVesselRows();
+  buildTable();
+  renderWorkbook();
+  recordEvent("vessel", "Workbook vessel updated", `${row.vessel || "Vessel"}: ${changes.join("; ")}`);
+  closeWorkbookEditModal();
+}
+
+function openWorkbookLogModal(sourceRow) {
+  const row = findVesselRowBySourceRow(sourceRow);
+  if (!row) return;
+  vesselAuditLists(row);
+  workbookLogTitle.textContent = `Vessel Log: ${row.vessel || "Vessel"}`;
+  workbookLogCompany.textContent = row.company || "";
+  workbookLatestNote.innerHTML = row.notes ? escapeHtml(row.notes) : `<span class="history-empty">No latest note.</span>`;
+  workbookNoteHistory.innerHTML = row.noteHistory.length
+    ? row.noteHistory
+        .map((entry) => `<div class="history-card"><strong>${escapeHtml(auditTime(entry))}${auditUser(entry) ? ` - ${escapeHtml(auditUser(entry))}` : ""}</strong><span>${escapeHtml(auditText(entry))}</span></div>`)
+        .join("")
+    : `<div class="history-empty">No note history yet.</div>`;
+  workbookAuditHistory.innerHTML = row.auditLog.length
+    ? row.auditLog
+        .map((entry) => `<div class="history-card history-card-green"><strong>${escapeHtml(auditTime(entry))}${auditUser(entry) ? ` - ${escapeHtml(auditUser(entry))}` : ""}</strong><span>${escapeHtml(auditText(entry))}</span></div>`)
+        .join("")
+    : `<div class="history-empty">No schedule or status changes yet.</div>`;
+  workbookLogModal.classList.remove("hidden");
+}
+
+function closeWorkbookLogModal() {
+  workbookLogModal.classList.add("hidden");
+}
+
+function handleWorkbookActionClick(event) {
+  const button = event.target.closest("[data-workbook-action]");
+  if (!button) return;
+  if (button.dataset.workbookAction === "edit") openWorkbookEditModal(button.dataset.sourceRow);
+  if (button.dataset.workbookAction === "log") openWorkbookLogModal(button.dataset.sourceRow);
 }
 
 function shippingAllocationStats() {
@@ -1623,6 +1838,18 @@ recordTabs.forEach((button) => {
 pilotRecordSelect.addEventListener("change", renderPilotRecords);
 eventRefreshButton.addEventListener("click", () => refreshEventLog());
 eventClearButton.addEventListener("click", () => clearAllEvents());
+workbookBody.addEventListener("click", handleWorkbookActionClick);
+workbookVesselForm.addEventListener("submit", applyWorkbookVesselEdit);
+workbookModalClose.addEventListener("click", closeWorkbookEditModal);
+workbookModalCancel.addEventListener("click", closeWorkbookEditModal);
+workbookLogClose.addEventListener("click", closeWorkbookLogModal);
+workbookLogDone.addEventListener("click", closeWorkbookLogModal);
+workbookVesselModal.addEventListener("click", (event) => {
+  if (event.target === workbookVesselModal) closeWorkbookEditModal();
+});
+workbookLogModal.addEventListener("click", (event) => {
+  if (event.target === workbookLogModal) closeWorkbookLogModal();
+});
 eventItemsBody.addEventListener("click", (event) => {
   const button = event.target.closest(".event-delete-button");
   if (button) clearEventRecord(button.dataset.eventId);

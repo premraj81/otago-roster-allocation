@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Otago Pilot Roster 2026-27</title>
-    <link rel="stylesheet" href="styles.css?v=20260523-modern-ui-1" />
+    <link rel="stylesheet" href="styles.css?v=20260523-workbook-vessel-log-1" />
   </head>
   <body>
     <main class="app">
@@ -291,9 +291,106 @@
       </section>
     </main>
 
+    <div class="vessel-modal hidden" id="workbookVesselModal" role="dialog" aria-modal="true" aria-labelledby="workbookModalTitle">
+      <div class="vessel-modal-card">
+        <header class="vessel-modal-head">
+          <div>
+            <p class="eyebrow">Workbook vessel</p>
+            <h2 id="workbookModalTitle">Edit Vessel Visit</h2>
+          </div>
+          <button class="modal-close-button" id="workbookModalClose" type="button" aria-label="Close">x</button>
+        </header>
+        <form class="vessel-edit-form" id="workbookVesselForm">
+          <section class="vessel-form-section">
+            <h3>Vessel Details</h3>
+            <div class="vessel-form-grid">
+              <label>Vessel Name<input id="modalVessel" type="text" /></label>
+              <label>Company<input id="modalCompany" type="text" /></label>
+              <label>Length (m)<input id="modalLength" type="text" /></label>
+              <label>Beam (m)<input id="modalBeam" type="text" /></label>
+              <label>IMO<input id="modalImo" type="text" /></label>
+              <label>Pilot<input id="modalPilot" type="text" /></label>
+              <label>Trainee<input id="modalTrainee" type="text" /></label>
+              <label>Service<input id="modalService" type="text" /></label>
+              <label>Direction<input id="modalDirection" type="text" /></label>
+              <label>Status
+                <select id="modalStatus">
+                  <option value="">Blank</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Not Yet Confirmed">Not Yet Confirmed</option>
+                  <option value="Cancelled">Cancelled</option>
+                  <option value="Maybe">Maybe</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="vessel-form-section">
+            <h3>Pilot / Requirements</h3>
+            <div class="vessel-form-grid">
+              <label>Lecturer<input id="modalLecturer" type="text" placeholder="e.g. John Doe" /></label>
+              <label>Driver Required
+                <select id="modalDriver">
+                  <option value=""></option>
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </label>
+              <label>Milford House Days<input id="modalMhDays" type="number" min="0" step="1" /></label>
+              <label>Launch Required
+                <select id="modalLaunch">
+                  <option value=""></option>
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="vessel-form-section">
+            <h3>Additional Information</h3>
+            <label>Notes<textarea id="modalNotes" rows="4"></textarea></label>
+            <label>Personal Information<textarea id="modalPersonalInfo" rows="3" placeholder="Add private notes here..."></textarea></label>
+          </section>
+
+          <footer class="vessel-modal-actions">
+            <button class="ghost-action-button" id="workbookModalCancel" type="button">Cancel</button>
+            <button class="primary-action-button" type="submit">Save Changes</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
+    <div class="vessel-modal hidden" id="workbookLogModal" role="dialog" aria-modal="true" aria-labelledby="workbookLogTitle">
+      <div class="vessel-modal-card vessel-log-card">
+        <header class="vessel-modal-head">
+          <div>
+            <h2 id="workbookLogTitle">Vessel Log</h2>
+            <p id="workbookLogCompany"></p>
+          </div>
+          <button class="modal-close-button" id="workbookLogClose" type="button" aria-label="Close">x</button>
+        </header>
+        <div class="vessel-log-layout">
+          <section>
+            <h3>Notes & Remarks</h3>
+            <div id="workbookLatestNote" class="latest-note"></div>
+            <h4>Note History</h4>
+            <div id="workbookNoteHistory" class="history-list"></div>
+          </section>
+          <section>
+            <h3>Schedule & Status Log</h3>
+            <div id="workbookAuditHistory" class="history-list"></div>
+          </section>
+        </div>
+        <footer class="vessel-modal-actions">
+          <button class="primary-action-button" id="workbookLogDone" type="button">Close</button>
+        </footer>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="shared-store.js?v=20260523-events-1"></script>
     <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
-    <script src="script.js?v=20260523-agent-manual-vessel-1"></script>
+    <script src="script.js?v=20260523-workbook-vessel-log-1"></script>
   </body>
 </html>
