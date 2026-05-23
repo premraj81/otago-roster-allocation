@@ -482,6 +482,27 @@ h1 {
   color: #44515f;
 }
 
+.workbook-table tr.workbook-row-confirmed td {
+  background: #eefaf1;
+}
+
+.workbook-table tr.workbook-row-not-confirmed td {
+  background: #fff8d6;
+}
+
+.workbook-table tr.workbook-row-cancelled td {
+  background: #fff0f0;
+  color: #8c1d1d;
+}
+
+.workbook-table tr.workbook-row-cancelled .workbook-vessel-name {
+  color: #b42318;
+  font-weight: 900;
+  text-decoration: line-through;
+  text-decoration-color: #e11d48;
+  text-decoration-thickness: 2px;
+}
+
 .workbook-action-tabs {
   display: inline-flex;
   gap: 4px;

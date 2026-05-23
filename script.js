@@ -95,6 +95,34 @@ const vesselRoutes = [
   "Lyttelton/Timaru",
   "Unclassified",
 ];
+const shipParticulars = {
+  "anthem of the seas": { length: "347.78", beam: "41.4", imo: "9656101" },
+  "asuka ii": { length: "240.96", beam: "29.6", imo: "8806204" },
+  "azamara pursuit": { length: "180.45", beam: "25.46", imo: "9210220" },
+  "azamara quest": { length: "181", beam: "25.46", imo: "9210218" },
+  "carnival splendor": { length: "290.2", beam: "35.3", imo: "9333163" },
+  "celebrity edge": { length: "306", beam: "39", imo: "9812705" },
+  "celebrity solstice": { length: "317.2", beam: "36.9", imo: "9362530" },
+  "coral adventurer": { length: "93.4", beam: "17.2", imo: "9838644" },
+  "coral princess": { length: "294", beam: "32.2", imo: "9229659" },
+  "crystal serenity": { length: "250", beam: "32.2", imo: "9243667" },
+  "europa 2": { length: "225.62", beam: "26.7", imo: "9616230" },
+  "grand princess": { length: "289.9", beam: "36", imo: "9104005" },
+  "hanseatic spirit": { length: "138.8", beam: "22.3", imo: "9857640" },
+  "heritage adventurer": { length: "122.8", beam: "18", imo: "9000168" },
+  "le soleal": { length: "142.1", beam: "18", imo: "9641675" },
+  "le soléal": { length: "142.1", beam: "18", imo: "9641675" },
+  "msc magnifica": { length: "293.8", beam: "32.3", imo: "9387085" },
+  "minerva": { length: "115", beam: "23", imo: "9895240" },
+  "noordam": { length: "285.24", beam: "32", imo: "9230115" },
+  "norwegian spirit": { length: "268.6", beam: "32.3", imo: "9141065" },
+  "regatta": { length: "180", beam: "26", imo: "9156474" },
+  "riviera": { length: "239.3", beam: "32.2", imo: "9438078" },
+  "royal princess": { length: "330", beam: "38.4", imo: "9584712" },
+  "seabourn quest": { length: "198.15", beam: "25.6", imo: "9483126" },
+  "seven seas explorer": { length: "223.6", beam: "31", imo: "9703150" },
+  "silver moon": { length: "212.8", beam: "27", imo: "9838618" },
+};
 const today = dateOnly(new Date());
 const seasonStarts = [2026, 2027, 2028, 2029, 2030];
 let selectedSeasonStart = 2026;
@@ -512,6 +540,7 @@ async function clearAllEvents() {
 function reviveVesselRow(row) {
   return {
     ...row,
+    status: row.status || "Confirmed",
     etaFiordland: row.etaFiordland ? new Date(row.etaFiordland) : null,
     etdFiordland: row.etdFiordland ? new Date(row.etdFiordland) : null,
     embarkDate: row.embarkDate ? new Date(row.embarkDate) : null,
@@ -1064,9 +1093,9 @@ function renderWorkbook() {
   workbookBody.innerHTML = rows.length
     ? rows
         .map((row) => `
-          <tr>
+          <tr class="${workbookRowStatusClass(row.status)}">
             <td>${row.status ? `<span class="workbook-status ${workbookStatusClass(row.status)}">${escapeHtml(row.status)}</span>` : ""}</td>
-            <td>${escapeHtml(row.vessel)}</td>
+            <td><span class="workbook-vessel-name">${escapeHtml(row.vessel)}</span></td>
             <td>${escapeHtml(row.company)}</td>
             <td>${escapeHtml(row.embarkPlace)}</td>
             <td>${escapeHtml(row.embarkDate)}</td>
@@ -1101,7 +1130,7 @@ function workbookItems() {
       const pilotsForRow = vesselPilotsForRow(row).filter((code) => code !== SOUTH_PORT_ALLOCATION);
       return {
         sourceRow: row.sourceRow,
-        status: vesselClean(row.status),
+        status: workbookDisplayStatus(row),
         vessel: vesselClean(row.vessel),
         company: vesselClean(row.company),
         embarkPlace: vesselClean(row.embark),
@@ -1109,7 +1138,7 @@ function workbookItems() {
         milfordDate: workbookDate(row.etaFiordland, rosterDate),
         disembarkPlace: vesselClean(row.disembark),
         disembarkDate: workbookDate(row.disembarkDate),
-        service: vesselClean(row.service),
+        service: workbookService(row),
         pilot: vesselClean(row.pilot) || pilotsForRow[0] || "",
         trainee: vesselClean(row.trainee) || pilotsForRow[1] || "",
         stewartIsland: vesselClean(row.stewartIsland),
@@ -1123,6 +1152,25 @@ function workbookItems() {
     })
     .filter(Boolean)
     .sort((a, b) => a.sortDate - b.sortDate || a.vessel.localeCompare(b.vessel));
+}
+
+function workbookDisplayStatus(row) {
+  return vesselClean(row.status) || "Confirmed";
+}
+
+function workbookService(row) {
+  const assigned = vesselPilotsForRow(row).filter(Boolean);
+  if (assigned.includes(SOUTH_PORT_ALLOCATION)) return "SP";
+  if (assigned.some((code) => code !== SOUTH_PORT_ALLOCATION)) return "FPS";
+  return vesselClean(row.service);
+}
+
+function workbookRowStatusClass(value) {
+  const normalized = vesselClean(value).toLowerCase().replace(/[^a-z]/g, "");
+  if (normalized === "confirmed") return "workbook-row-confirmed";
+  if (normalized === "notconfirmed" || normalized === "notyetconfirmed" || normalized === "notconrimed" || normalized === "unconfirmed") return "workbook-row-not-confirmed";
+  if (normalized === "cancelled" || normalized === "canceled" || normalized === "canclled") return "workbook-row-cancelled";
+  return "";
 }
 
 function workbookStatusClass(value) {
@@ -1150,6 +1198,10 @@ function findVesselRowBySourceRow(sourceRow) {
   return vesselRows.find((row) => String(row.sourceRow) === String(sourceRow));
 }
 
+function shipParticularsFor(row) {
+  return shipParticulars[vesselNorm(row.vessel)] || {};
+}
+
 function modalField(id) {
   return document.querySelector(`#${id}`);
 }
@@ -1170,18 +1222,20 @@ function selectOptionValue(id, value) {
 function openWorkbookEditModal(sourceRow) {
   const row = findVesselRowBySourceRow(sourceRow);
   if (!row) return;
+  const particulars = shipParticularsFor(row);
+  const pilotsForRow = vesselPilotsForRow(row).filter((code) => code !== SOUTH_PORT_ALLOCATION);
   activeWorkbookSourceRow = sourceRow;
   workbookModalTitle.textContent = `Edit ${row.vessel || "Vessel Visit"}`;
   setModalValue("modalVessel", row.vessel);
   setModalValue("modalCompany", row.company);
-  setModalValue("modalLength", row.length || row.loa);
-  setModalValue("modalBeam", row.beam);
-  setModalValue("modalImo", row.imo);
-  setModalValue("modalPilot", row.pilot);
-  setModalValue("modalTrainee", row.trainee);
-  setModalValue("modalService", row.service);
+  setModalValue("modalLength", row.length || row.loa || particulars.length);
+  setModalValue("modalBeam", row.beam || particulars.beam);
+  setModalValue("modalImo", row.imo || particulars.imo);
+  setModalValue("modalPilot", row.pilot || pilotsForRow[0]);
+  setModalValue("modalTrainee", row.trainee || pilotsForRow[1]);
+  setModalValue("modalService", workbookService(row));
   setModalValue("modalDirection", row.direction || vesselCategory(row));
-  selectOptionValue("modalStatus", row.status);
+  selectOptionValue("modalStatus", workbookDisplayStatus(row));
   setModalValue("modalLecturer", row.lecturer);
   selectOptionValue("modalDriver", row.driver);
   setModalValue("modalMhDays", row.mhDays);
