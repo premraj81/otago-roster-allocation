@@ -609,6 +609,27 @@ function normalizeWorkbookRows(matrix) {
   })).filter((row) => row.vessel || row.etaFiordland || row.embark || row.disembark || row.comments);
 }
 
+function workbookVisibleFingerprint(row) {
+  const fields = [
+    "status", "vessel", "company", "embark", "embarkDate", "etaFiordland", "disembark",
+    "disembarkDate", "service", "pilot", "trainee", "stewartIsland", "lecturer", "driver",
+    "mhDays", "launch",
+  ];
+  return JSON.stringify(fields.map((field) => row?.[field] instanceof Date ? row[field].toISOString() : row?.[field] || ""));
+}
+
+function markChangedWorkbookRows(nextRows, previousRows) {
+  const previousBySource = new Map(previousRows.map((row) => [String(row.sourceRow), row]));
+  const now = new Date().toISOString();
+  return nextRows.map((row) => {
+    const previous = previousBySource.get(String(row.sourceRow));
+    if (previous && workbookVisibleFingerprint(previous) === workbookVisibleFingerprint(row)) {
+      return { ...row, updatedAt: previous.updatedAt };
+    }
+    return { ...row, updatedAt: now };
+  });
+}
+
 async function handleUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -617,7 +638,7 @@ async function handleUpload(event) {
     const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
     const matrix = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true, defval: "" });
-    state.rows = normalizeWorkbookRows(matrix);
+    state.rows = markChangedWorkbookRows(normalizeWorkbookRows(matrix), state.rows);
     saveRows();
     recordUpload(file, state.rows.length);
     logAgentEvent("Agent Data uploaded", `${file.name} loaded with ${state.rows.length} vessel row${state.rows.length === 1 ? "" : "s"}`);
@@ -724,6 +745,7 @@ function handleWarningClick(event) {
     }
   });
   row.acceptedWarning = false;
+  row.updatedAt = new Date().toISOString();
   saveRows();
   logAgentEvent("Agent warning updated", `${row.vessel || "Vessel"} source row ${row.sourceRow}`);
   render();
@@ -766,6 +788,7 @@ function handleEditSubmit(event) {
     els.fileStatus.textContent = "Enter a vessel name before saving";
     return;
   }
+  row.updatedAt = new Date().toISOString();
   if (isNew) state.rows.push(row);
 
   saveRows();

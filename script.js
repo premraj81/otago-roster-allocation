@@ -4,6 +4,7 @@ const AGENT_FILE_STORAGE_KEY = "fiordland-calendar-rows-v1";
 const POL_CRUISE_COUNTS_KEY = "pol-cruise-counts-v1";
 const EVENT_LOG_STORAGE_KEY = "otago-event-log-v1";
 const VERSION_HISTORY_STORAGE_KEY = "otago-version-history-v1";
+const SHIP_SPECS_STORAGE_KEY = "otago-ship-specs-v1";
 const SOUTH_PORT_ALLOCATION = "SOUTH_PORT";
 
 const pilots = [
@@ -96,7 +97,7 @@ const vesselRoutes = [
   "Lyttelton/Timaru",
   "Unclassified",
 ];
-const shipParticulars = {
+const shipParticularsFallback = {
   "anthem of the seas": { length: "347.78", beam: "41.4", imo: "9656101" },
   "asuka ii": { length: "240.96", beam: "29.6", imo: "8806204" },
   "azamara pursuit": { length: "180.45", beam: "25.46", imo: "9210220" },
@@ -135,6 +136,7 @@ let vesselRows = loadAgentVesselRows();
 let polCruiseCounts = loadPolCruiseCounts();
 let eventLog = loadEventLog();
 let versionHistory = loadVersionHistory();
+let shipSpecs = loadShipSpecs();
 let remoteRefreshInFlight = false;
 let activeWorkbookSourceRow = null;
 let lastVesselRowsSaveAt = 0;
@@ -337,6 +339,15 @@ function loadVersionHistory() {
   }
 }
 
+function loadShipSpecs() {
+  try {
+    const saved = localStorage.getItem(SHIP_SPECS_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : { ...(window.SHIP_SPECS || {}) };
+  } catch {
+    return { ...(window.SHIP_SPECS || {}) };
+  }
+}
+
 function saveSharedState(key, data) {
   if (!window.OtagoSharedStore?.save) return Promise.resolve(false);
   return window.OtagoSharedStore.save(key, data).catch((error) => {
@@ -412,6 +423,37 @@ async function seedOrLoadSharedState(key, localValue) {
     return { value: null, found: false };
   }
   return { value: remote.data, found: true };
+}
+
+async function refreshShipSpecs({ seedIfMissing = false } = {}) {
+  const defaults = window.SHIP_SPECS || {};
+  if (!Object.keys(shipSpecs || {}).length && Object.keys(defaults).length) {
+    shipSpecs = { ...defaults };
+    replaceLocalStorageJson(SHIP_SPECS_STORAGE_KEY, shipSpecs);
+  }
+
+  const shared = window.OtagoSharedStore;
+  if (!shared?.isReady) return;
+
+  try {
+    const remote = await shared.load(SHIP_SPECS_STORAGE_KEY);
+    if (remote.found) {
+      shipSpecs = { ...(remote.data || {}), ...defaults };
+      replaceLocalStorageJson(SHIP_SPECS_STORAGE_KEY, shipSpecs);
+      if (activeTabName === "workbook") renderWorkbook();
+      if (activeTabName === "roster") rebuildRosterPreservingScroll();
+      else rosterNeedsRebuild = true;
+      return;
+    }
+
+    if (seedIfMissing && Object.keys(defaults).length) {
+      shipSpecs = { ...defaults };
+      replaceLocalStorageJson(SHIP_SPECS_STORAGE_KEY, shipSpecs);
+      await shared.save(SHIP_SPECS_STORAGE_KEY, shipSpecs);
+    }
+  } catch (error) {
+    console.warn("Could not refresh ship specs", error);
+  }
 }
 
 async function refreshSharedState() {
@@ -619,6 +661,7 @@ function savedVersionSnapshot() {
     vesselAllocations: JSON.parse(JSON.stringify(vesselAllocations || {})),
     vesselRows: serializeVesselRows(vesselRows),
     polCruiseCounts: JSON.parse(JSON.stringify(polCruiseCounts || {})),
+    shipSpecs: JSON.parse(JSON.stringify(shipSpecs || {})),
   };
 }
 
@@ -1254,7 +1297,7 @@ function renderWorkbook() {
   workbookBody.innerHTML = rows.length
     ? rows
         .map((row) => `
-          <tr class="${workbookRowStatusClass(row.status)}">
+          <tr class="${workbookRowStatusClass(row.status)} ${row.agentUpdated ? "workbook-row-agent-updated" : ""}">
             <td>${row.status ? `<span class="workbook-status ${workbookStatusClass(row.status)}">${escapeHtml(row.status)}</span>` : ""}</td>
             <td><span class="workbook-vessel-name">${escapeHtml(row.vessel)}</span></td>
             <td>${escapeHtml(row.company)}</td>
@@ -1293,7 +1336,7 @@ function workbookItems() {
         sourceRow: row.sourceRow,
         status: workbookDisplayStatus(row),
         vessel: vesselClean(row.vessel),
-        company: vesselClean(row.company),
+        company: workbookCompany(row),
         embarkPlace: vesselClean(row.embark),
         embarkDate: workbookDate(row.embarkDate, rosterDate),
         milfordDate: workbookDate(row.etaFiordland, rosterDate),
@@ -1308,6 +1351,7 @@ function workbookItems() {
         mhDays: vesselClean(row.mhDays),
         launch: vesselClean(row.launch),
         actions: vesselClean(row.actions),
+        agentUpdated: isRecentAgentUpdate(row),
         sortDate: rosterDate || row.etaFiordland || row.embarkDate || row.disembarkDate || new Date(8640000000000000),
       };
     })
@@ -1317,6 +1361,10 @@ function workbookItems() {
 
 function workbookDisplayStatus(row) {
   return vesselClean(row.status) || "Confirmed";
+}
+
+function workbookCompany(row) {
+  return vesselClean(row.company) || vesselClean(shipParticularsFor(row).company);
 }
 
 function workbookService(row) {
@@ -1360,7 +1408,31 @@ function findVesselRowBySourceRow(sourceRow) {
 }
 
 function shipParticularsFor(row) {
-  return shipParticulars[vesselNorm(row.vessel)] || {};
+  const key = shipSpecKey(row.vessel);
+  return shipSpecs[key] || shipParticularsFallback[key] || {};
+}
+
+function shipSpecKey(value) {
+  return vesselNorm(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f']/g, "");
+}
+
+function vesselLoa(row) {
+  return vesselClean(row.length) || vesselClean(row.loa) || vesselClean(shipParticularsFor(row).length);
+}
+
+function rosterVesselDisplayName(row) {
+  const name = vesselClean(row.vessel) || "Unnamed vessel";
+  const company = workbookCompany(row).toLowerCase();
+  return company.includes("princess") ? `(${name})` : name;
+}
+
+function isRecentAgentUpdate(row) {
+  if (!row.updatedAt) return false;
+  const updated = new Date(row.updatedAt);
+  if (Number.isNaN(updated.getTime())) return false;
+  return Date.now() - updated.getTime() <= 2 * 24 * 60 * 60 * 1000;
 }
 
 function modalField(id) {
@@ -1388,7 +1460,7 @@ function openWorkbookEditModal(sourceRow) {
   activeWorkbookSourceRow = sourceRow;
   workbookModalTitle.textContent = `Edit ${row.vessel || "Vessel Visit"}`;
   setModalValue("modalVessel", row.vessel);
-  setModalValue("modalCompany", row.company);
+  setModalValue("modalCompany", row.company || particulars.company);
   setModalValue("modalLength", row.length || row.loa || particulars.length);
   setModalValue("modalBeam", row.beam || particulars.beam);
   setModalValue("modalImo", row.imo || particulars.imo);
@@ -1507,6 +1579,7 @@ async function applyWorkbookVesselEdit(event) {
     return;
   }
 
+  row.updatedAt = new Date().toISOString();
   invalidateVesselRenderCache();
   changes.forEach((change) => row.auditLog.unshift(auditEntry(change)));
   await saveVesselRows();
@@ -1542,7 +1615,7 @@ function openWorkbookLogModal(sourceRow) {
   if (!row) return;
   vesselAuditLists(row);
   workbookLogTitle.textContent = `Vessel Log: ${row.vessel || "Vessel"}`;
-  workbookLogCompany.textContent = row.company || "";
+  workbookLogCompany.textContent = workbookCompany(row);
   workbookLatestNote.innerHTML = row.notes ? escapeHtml(row.notes) : `<span class="history-empty">No latest note.</span>`;
   workbookNoteHistory.innerHTML = row.noteHistory.length
     ? row.noteHistory
@@ -1847,7 +1920,8 @@ function compactShipItem(row) {
     .join(" - ");
   return {
     key: vesselAllocationKey(row),
-    name: row.vessel || "Unnamed vessel",
+    name: rosterVesselDisplayName(row),
+    loa: vesselLoa(row),
     detail,
     portMarker: lytteltonTimaruMarker(row),
     stewart: Boolean(stewart),
@@ -1993,6 +2067,7 @@ function renderShipCell(items) {
         <div class="ship-pill-inline ship-variant-${index % 4} ${assigned.length ? "has-pilot" : ""} ${assigned.includes(SOUTH_PORT_ALLOCATION) ? "south-port-ship" : ""}">
           <div class="ship-line">
             <span class="ship-name-inline">${escapeHtml(item.name)}</span>
+            ${item.loa ? `<span class="ship-loa-inline">(${escapeHtml(item.loa)}m)</span>` : ""}
             <span class="ship-pilot-badge ${assigned.includes(SOUTH_PORT_ALLOCATION) ? "south-port-badge" : ""}">${escapeHtml(allocationBadgeText(assigned))}</span>
           </div>
           ${
@@ -2149,6 +2224,7 @@ window.addEventListener("message", (event) => {
 window.addEventListener("focus", () => {
   refreshVesselRowsFromAgent();
   refreshPolCruiseCounts();
+  refreshShipSpecs();
   refreshSharedState();
   if (activeTabName === "events") refreshEventLog();
 });
@@ -2161,6 +2237,9 @@ setInterval(() => {
 setInterval(() => {
   if (!document.hidden) refreshSharedState();
 }, 8000);
+setInterval(() => {
+  if (!document.hidden) refreshShipSpecs();
+}, 60000);
 setInterval(() => {
   if (!document.hidden && activeTabName === "events") refreshEventLog();
 }, 10000);
@@ -2179,6 +2258,7 @@ buildSeasonSelect();
 updateSeasonTitle();
 buildMonthSelect();
 renderWorkbook();
+refreshShipSpecs({ seedIfMissing: true });
 refreshSharedState();
 refreshEventLog({ seedIfMissing: true });
 refreshVersionHistory({ seedIfMissing: true });
