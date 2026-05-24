@@ -39,16 +39,16 @@ button {
 
 .app-shell {
   min-height: 100vh;
-  padding: 28px;
+  padding: 14px;
 }
 
 .suite-header {
   width: min(1220px, 100%);
-  margin: 0 auto 18px;
+  margin: 0 auto 10px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 20px;
+  gap: 12px;
 }
 
 .tab-panel {
@@ -73,9 +73,9 @@ button {
 }
 
 .eyebrow {
-  margin: 0 0 6px;
+  margin: 0 0 3px;
   color: var(--accent);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -83,8 +83,8 @@ button {
 
 h1 {
   margin: 0;
-  font-size: clamp(30px, 4vw, 52px);
-  line-height: 1;
+  font-size: clamp(20px, 2.5vw, 30px);
+  line-height: 1.05;
   letter-spacing: 0;
 }
 
@@ -98,16 +98,17 @@ h2 {
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px;
   justify-content: flex-end;
 }
 
 .primary-btn,
 .secondary-btn,
 .ghost-btn {
-  min-height: 42px;
-  border-radius: 8px;
-  padding: 0 16px;
+  min-height: 30px;
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -128,12 +129,12 @@ h2 {
 }
 
 .import-panel {
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .import-panel,
 .drop-zone {
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .drop-zone,
@@ -147,12 +148,12 @@ h2 {
 }
 
 .drop-zone {
-  min-height: 210px;
+  min-height: 92px;
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 10px;
-  padding: 24px;
+  gap: 4px;
+  padding: 12px;
   text-align: center;
   outline: 2px dashed transparent;
   transition:
@@ -178,25 +179,25 @@ h2 {
 .upload-icon {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--accent-soft);
   color: var(--accent-strong);
-  font-size: 30px;
+  font-size: 20px;
   font-weight: 600;
 }
 
 .upload-title {
-  font-size: 20px;
+  font-size: 13px;
   font-weight: 800;
 }
 
 .upload-copy {
-  max-width: 38ch;
+  max-width: 54ch;
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 textarea:focus {
@@ -208,9 +209,10 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding: 14px 16px;
-  margin-bottom: 14px;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 11px;
 }
 
 .status-panel > div {
@@ -226,25 +228,26 @@ textarea:focus {
 
 progress {
   width: min(280px, 40%);
-  height: 10px;
+  height: 7px;
   accent-color: var(--accent);
 }
 
 .season-tabs {
   display: flex;
-  gap: 8px;
+  gap: 5px;
   overflow-x: auto;
-  padding: 4px 0 14px;
+  padding: 2px 0 8px;
 }
 
 .season-tab {
   flex: 0 0 auto;
-  min-height: 40px;
-  border-radius: 8px;
-  padding: 0 15px;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
   color: var(--ink);
   background: #e8eee9;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .season-tab[aria-selected="true"] {
@@ -257,37 +260,38 @@ progress {
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
   overflow: hidden;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .summary-strip > div {
   display: grid;
-  gap: 4px;
-  padding: 16px;
+  gap: 1px;
+  padding: 8px 10px;
   background: #fff;
 }
 
 .summary-value {
-  font-size: 28px;
+  font-size: 18px;
   font-weight: 850;
 }
 
 .summary-label {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .table-wrap {
   overflow: auto;
-  max-height: 66vh;
+  max-height: 68vh;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 720px;
+  min-width: 620px;
+  font-size: 11px;
 }
 
 thead th {
@@ -297,13 +301,13 @@ thead th {
   background: var(--ink);
   color: #fff;
   text-align: left;
-  font-size: 13px;
+  font-size: 10px;
   letter-spacing: 0;
 }
 
 th,
 td {
-  padding: 11px 14px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--line);
   vertical-align: top;
 }
@@ -313,19 +317,19 @@ tbody tr:nth-child(even) {
 }
 
 .count-cell {
-  width: 190px;
-  font-size: 18px;
+  width: 120px;
+  font-size: 13px;
   font-weight: 850;
 }
 
 .time-cell {
-  width: 150px;
+  width: 86px;
   white-space: nowrap;
   font-weight: 400;
 }
 
 .date-cell {
-  width: 210px;
+  width: 145px;
   white-space: nowrap;
   font-weight: 400;
 }
@@ -336,28 +340,28 @@ tbody tr:nth-child(even) {
 
 .ship-list {
   display: grid;
-  gap: 6px;
+  gap: 3px;
   justify-items: start;
 }
 
 .ship-chip {
   display: inline-block;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--accent-soft);
   color: var(--accent-strong);
-  padding: 4px 9px;
-  font-size: 13px;
+  padding: 2px 6px;
+  font-size: 10.5px;
   font-weight: 400;
 }
 
 .time-list {
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }
 
 .line-highlight {
-  border-radius: 8px;
-  padding: 4px 9px;
+  border-radius: 6px;
+  padding: 2px 6px;
 }
 
 .tone-1 {
@@ -377,13 +381,13 @@ tbody tr:nth-child(even) {
 }
 
 .vessel-name {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 .movement-note {
   color: #596861;
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 400;
 }
 

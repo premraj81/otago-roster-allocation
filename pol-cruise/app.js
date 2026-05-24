@@ -820,7 +820,7 @@ function clearAll() {
 }
 
 els.fileInput.addEventListener("change", (event) => handleFiles(event.target.files));
-els.exportCsvBtn.addEventListener("click", exportCsv);
+els.exportCsvBtn?.addEventListener("click", exportCsv);
 els.clearBtn.addEventListener("click", clearAll);
 
 ["dragenter", "dragover"].forEach((eventName) => {
