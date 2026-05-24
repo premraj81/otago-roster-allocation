@@ -887,6 +887,15 @@ function applyPilotRuleFields(pilot, values) {
   pilot.leaveEnd = values.leaveEnd;
 }
 
+function clearBlankOverridesForPilotRule(pilot) {
+  allDates().forEach((date) => {
+    const key = editKey(date, pilot);
+    if (edits[key] === "" && baselineValue(pilot, date) === pilot.code) {
+      delete edits[key];
+    }
+  });
+}
+
 async function savePilotRuleEdit(event) {
   event.preventDefault();
   const pilot = pilots.find((item) => item.code === activePilotRuleCode);
@@ -903,6 +912,8 @@ async function savePilotRuleEdit(event) {
     leaveEnd: pilotLeaveEndField.value,
   };
   applyPilotRuleFields(pilot, values);
+  clearBlankOverridesForPilotRule(pilot);
+  saveEdits();
   await savePilotSettings();
   buildHeader();
   buildPilotRecordSelect();
@@ -926,6 +937,8 @@ async function resetPilotRule() {
     leaveStart: "",
     leaveEnd: "",
   });
+  clearBlankOverridesForPilotRule(pilot);
+  saveEdits();
   await savePilotSettings();
   buildHeader();
   buildPilotRecordSelect();
