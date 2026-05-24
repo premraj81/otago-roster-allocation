@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Otago Pilot Roster 2026-27</title>
-    <link rel="stylesheet" href="styles.css?v=20260524-toolbar-align-1" />
+    <link rel="stylesheet" href="styles.css?v=20260524-pilot-rules-1" />
   </head>
   <body>
     <main class="app">
@@ -408,10 +408,54 @@
       </div>
     </div>
 
+    <div class="vessel-modal hidden" id="pilotRuleModal" role="dialog" aria-modal="true" aria-labelledby="pilotRuleModalTitle">
+      <div class="vessel-modal-card pilot-rule-card">
+        <header class="vessel-modal-head">
+          <div>
+            <p class="eyebrow">Pilot settings</p>
+            <h2 id="pilotRuleModalTitle">Pilot Rule</h2>
+          </div>
+          <button class="modal-close-button" id="pilotRuleModalClose" type="button" aria-label="Close">x</button>
+        </header>
+        <form class="vessel-edit-form" id="pilotRuleForm">
+          <section class="vessel-form-section">
+            <h3>Pilot Details</h3>
+            <div class="vessel-form-grid pilot-rule-grid">
+              <label>Initial<input id="pilotInitialField" type="text" readonly /></label>
+              <label>Full Name<input id="pilotFullNameField" type="text" /></label>
+              <label>Colour<input id="pilotColorField" type="color" /></label>
+            </div>
+          </section>
+          <section class="vessel-form-section">
+            <h3>Roster Rule</h3>
+            <div class="vessel-form-grid pilot-rule-grid">
+              <label>Days On<select id="pilotDaysOnField"></select></label>
+              <label>Days Off<select id="pilotDaysOffField"></select></label>
+              <label>Start Date<input id="pilotStartDateField" type="date" /></label>
+              <label>End Date<input id="pilotEndDateField" type="date" /></label>
+            </div>
+          </section>
+          <section class="vessel-form-section">
+            <h3>Holiday Leave</h3>
+            <div class="vessel-form-grid pilot-rule-grid">
+              <label>Leave Start<input id="pilotLeaveStartField" type="date" /></label>
+              <label>Leave End<input id="pilotLeaveEndField" type="date" /></label>
+            </div>
+          </section>
+          <footer class="vessel-modal-actions">
+            <button class="danger-action-button" id="pilotRuleReset" type="button">Reset Rule</button>
+            <span class="modal-action-spacer"></span>
+            <button class="ghost-action-button" id="pilotRuleCancel" type="button">Cancel</button>
+            <button class="primary-action-button" type="submit">Save Pilot Rule</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="shared-store.js?v=20260523-events-1"></script>
     <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
     <script src="ship-specs.js?v=20260524-ship-specs-1"></script>
-    <script src="script.js?v=20260524-ship-specs-2"></script>
+    <script src="script.js?v=20260524-pilot-rules-1"></script>
   </body>
 </html>

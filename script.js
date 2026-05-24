@@ -5,6 +5,7 @@ const POL_CRUISE_COUNTS_KEY = "pol-cruise-counts-v1";
 const EVENT_LOG_STORAGE_KEY = "otago-event-log-v1";
 const VERSION_HISTORY_STORAGE_KEY = "otago-version-history-v1";
 const SHIP_SPECS_STORAGE_KEY = "otago-ship-specs-v1";
+const PILOT_SETTINGS_STORAGE_KEY = "otago-pilot-settings-v1";
 const SOUTH_PORT_ALLOCATION = "SOUTH_PORT";
 
 const pilots = [
@@ -88,6 +89,8 @@ const pilots = [
     contractor: true,
   },
 ];
+const defaultPilotSettings = pilots.map((pilot) => ({ ...pilot }));
+applyPilotSettings(loadPilotSettings());
 
 const specialWork = ["NB", "SB", "STEWART", "TOTAL_SHIP"];
 const vesselRoutes = [
@@ -187,6 +190,22 @@ const versionModalSubTitle = document.querySelector("#versionModalSubTitle");
 const versionDetails = document.querySelector("#versionDetails");
 const versionModalClose = document.querySelector("#versionModalClose");
 const versionModalDone = document.querySelector("#versionModalDone");
+const pilotRuleModal = document.querySelector("#pilotRuleModal");
+const pilotRuleForm = document.querySelector("#pilotRuleForm");
+const pilotRuleModalTitle = document.querySelector("#pilotRuleModalTitle");
+const pilotRuleModalClose = document.querySelector("#pilotRuleModalClose");
+const pilotRuleCancel = document.querySelector("#pilotRuleCancel");
+const pilotRuleReset = document.querySelector("#pilotRuleReset");
+const pilotInitialField = document.querySelector("#pilotInitialField");
+const pilotFullNameField = document.querySelector("#pilotFullNameField");
+const pilotColorField = document.querySelector("#pilotColorField");
+const pilotStartDateField = document.querySelector("#pilotStartDateField");
+const pilotEndDateField = document.querySelector("#pilotEndDateField");
+const pilotDaysOnField = document.querySelector("#pilotDaysOnField");
+const pilotDaysOffField = document.querySelector("#pilotDaysOffField");
+const pilotLeaveStartField = document.querySelector("#pilotLeaveStartField");
+const pilotLeaveEndField = document.querySelector("#pilotLeaveEndField");
+let activePilotRuleCode = "";
 const eventItemsBody = document.querySelector("#eventItemsBody");
 const eventSummary = document.querySelector("#eventSummary");
 const eventRefreshButton = document.querySelector("#eventRefreshButton");
@@ -225,10 +244,23 @@ function daysBetween(a, b) {
 
 function isPilotWorking(pilot, date) {
   if (pilot.contractor) return false;
+  const day = dateOnly(date);
+  if (pilot.end && day > toDate(pilot.end)) return false;
+  if (dateInRange(day, pilot.leaveStart, pilot.leaveEnd)) return false;
+  if (!pilot.start || !Number(pilot.onDays)) return false;
   const offset = daysBetween(date, toDate(pilot.start));
   if (offset < 0) return false;
-  const cycle = pilot.onDays + pilot.offDays;
+  const cycle = Number(pilot.onDays) + Number(pilot.offDays || 0);
+  if (cycle <= 0) return false;
   return offset % cycle < pilot.onDays;
+}
+
+function dateInRange(date, start, end) {
+  if (!start && !end) return false;
+  const day = dateOnly(date);
+  const rangeStart = start ? toDate(start) : new Date(-8640000000000000);
+  const rangeEnd = end ? toDate(end) : new Date(8640000000000000);
+  return day >= rangeStart && day <= rangeEnd;
 }
 
 function allDates() {
@@ -348,6 +380,53 @@ function loadShipSpecs() {
   }
 }
 
+function loadPilotSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(PILOT_SETTINGS_STORAGE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function serializePilotSettings() {
+  return Object.fromEntries(
+    pilots.map((pilot) => [
+      pilot.code,
+      {
+        name: pilot.name,
+        color: pilot.color,
+        start: pilot.start || "",
+        end: pilot.end || "",
+        onDays: Number(pilot.onDays || 0),
+        offDays: Number(pilot.offDays || 0),
+        leaveStart: pilot.leaveStart || "",
+        leaveEnd: pilot.leaveEnd || "",
+      },
+    ])
+  );
+}
+
+function applyPilotSettings(settings = {}) {
+  pilots.forEach((pilot) => {
+    const defaults = defaultPilotSettings.find((item) => item.code === pilot.code) || {};
+    const saved = settings[pilot.code] || {};
+    pilot.name = saved.name || defaults.name || pilot.name;
+    pilot.color = saved.color || defaults.color || pilot.color;
+    pilot.start = saved.start || defaults.start || "";
+    pilot.end = saved.end || "";
+    pilot.onDays = Number(saved.onDays || defaults.onDays || 0);
+    pilot.offDays = Number(saved.offDays ?? defaults.offDays ?? 0);
+    pilot.leaveStart = saved.leaveStart || "";
+    pilot.leaveEnd = saved.leaveEnd || "";
+  });
+}
+
+function savePilotSettings() {
+  const payload = serializePilotSettings();
+  localStorage.setItem(PILOT_SETTINGS_STORAGE_KEY, JSON.stringify(payload));
+  return saveSharedState(PILOT_SETTINGS_STORAGE_KEY, payload);
+}
+
 function saveSharedState(key, data) {
   if (!window.OtagoSharedStore?.save) return Promise.resolve(false);
   return window.OtagoSharedStore.save(key, data).catch((error) => {
@@ -461,11 +540,12 @@ async function refreshSharedState() {
   remoteRefreshInFlight = true;
 
   try {
-    const [remoteEdits, remoteAllocations, remoteRows, remoteCounts] = await Promise.all([
+    const [remoteEdits, remoteAllocations, remoteRows, remoteCounts, remotePilotSettings] = await Promise.all([
       seedOrLoadSharedState(STORAGE_KEY, edits),
       seedOrLoadSharedState(VESSEL_ALLOCATION_KEY, vesselAllocations),
       seedOrLoadSharedState(AGENT_FILE_STORAGE_KEY, serializeVesselRows(vesselRows)),
       seedOrLoadSharedState(POL_CRUISE_COUNTS_KEY, { counts: polCruiseCounts }),
+      seedOrLoadSharedState(PILOT_SETTINGS_STORAGE_KEY, serializePilotSettings()),
     ]);
 
     let rowsChanged = false;
@@ -507,6 +587,15 @@ async function refreshSharedState() {
         replaceLocalStorageJson(POL_CRUISE_COUNTS_KEY, remoteCounts.value || { counts: nextCounts });
         countsChanged = true;
       }
+    }
+
+    if (remotePilotSettings.found && hasJsonChanged(serializePilotSettings(), remotePilotSettings.value || {})) {
+      applyPilotSettings(remotePilotSettings.value || {});
+      replaceLocalStorageJson(PILOT_SETTINGS_STORAGE_KEY, serializePilotSettings());
+      buildHeader();
+      buildPilotRecordSelect();
+      rowsChanged = true;
+      recordsChanged = true;
     }
 
     if (rowsChanged || countsChanged || recordsChanged) applyDataChangeToActiveViews({ rows: rowsChanged, counts: countsChanged, records: recordsChanged });
@@ -662,6 +751,7 @@ function savedVersionSnapshot() {
     vesselRows: serializeVesselRows(vesselRows),
     polCruiseCounts: JSON.parse(JSON.stringify(polCruiseCounts || {})),
     shipSpecs: JSON.parse(JSON.stringify(shipSpecs || {})),
+    pilotSettings: serializePilotSettings(),
   };
 }
 
@@ -749,6 +839,102 @@ function closeVersionModal() {
   versionModal.classList.add("hidden");
 }
 
+function buildDayOptions(select, selected) {
+  select.innerHTML = "";
+  for (let day = 0; day <= 28; day++) {
+    const option = document.createElement("option");
+    option.value = String(day);
+    option.textContent = String(day);
+    select.appendChild(option);
+  }
+  select.value = String(Number(selected || 0));
+}
+
+function dateInputValue(value) {
+  return value ? dateKey(toDate(value)) : "";
+}
+
+function openPilotRuleModal(pilotCode) {
+  const pilot = pilots.find((item) => item.code === pilotCode);
+  if (!pilot) return;
+  activePilotRuleCode = pilot.code;
+  pilotRuleModalTitle.textContent = `${pilot.code} Pilot Rule`;
+  pilotInitialField.value = pilot.code;
+  pilotFullNameField.value = pilot.name || "";
+  pilotColorField.value = pilot.color || "#ffffff";
+  pilotStartDateField.value = dateInputValue(pilot.start);
+  pilotEndDateField.value = dateInputValue(pilot.end);
+  buildDayOptions(pilotDaysOnField, pilot.onDays);
+  buildDayOptions(pilotDaysOffField, pilot.offDays);
+  pilotLeaveStartField.value = dateInputValue(pilot.leaveStart);
+  pilotLeaveEndField.value = dateInputValue(pilot.leaveEnd);
+  pilotRuleModal.classList.remove("hidden");
+}
+
+function closePilotRuleModal() {
+  activePilotRuleCode = "";
+  pilotRuleModal.classList.add("hidden");
+}
+
+function applyPilotRuleFields(pilot, values) {
+  pilot.name = values.name;
+  pilot.color = values.color;
+  pilot.start = values.start;
+  pilot.end = values.end;
+  pilot.onDays = values.onDays;
+  pilot.offDays = values.offDays;
+  pilot.leaveStart = values.leaveStart;
+  pilot.leaveEnd = values.leaveEnd;
+}
+
+async function savePilotRuleEdit(event) {
+  event.preventDefault();
+  const pilot = pilots.find((item) => item.code === activePilotRuleCode);
+  if (!pilot) return;
+  const before = { ...pilot };
+  const values = {
+    name: vesselClean(pilotFullNameField.value) || pilot.code,
+    color: pilotColorField.value || pilot.color,
+    start: pilotStartDateField.value,
+    end: pilotEndDateField.value,
+    onDays: Number(pilotDaysOnField.value || 0),
+    offDays: Number(pilotDaysOffField.value || 0),
+    leaveStart: pilotLeaveStartField.value,
+    leaveEnd: pilotLeaveEndField.value,
+  };
+  applyPilotRuleFields(pilot, values);
+  await savePilotSettings();
+  buildHeader();
+  buildPilotRecordSelect();
+  if (activeTabName === "roster") rebuildRosterPreservingScroll();
+  else rosterNeedsRebuild = true;
+  recordEvent("roster", "Pilot rule updated", `${pilot.code} ${before.name || ""} -> ${pilot.name}; ${pilot.onDays} on / ${pilot.offDays} off`);
+  closePilotRuleModal();
+}
+
+async function resetPilotRule() {
+  const pilot = pilots.find((item) => item.code === activePilotRuleCode);
+  const defaults = defaultPilotSettings.find((item) => item.code === activePilotRuleCode);
+  if (!pilot || !defaults) return;
+  applyPilotRuleFields(pilot, {
+    name: defaults.name,
+    color: defaults.color,
+    start: defaults.start || "",
+    end: "",
+    onDays: defaults.onDays || 0,
+    offDays: defaults.offDays || 0,
+    leaveStart: "",
+    leaveEnd: "",
+  });
+  await savePilotSettings();
+  buildHeader();
+  buildPilotRecordSelect();
+  if (activeTabName === "roster") rebuildRosterPreservingScroll();
+  else rosterNeedsRebuild = true;
+  recordEvent("roster", "Pilot rule reset", `${pilot.code} reset to default rule`);
+  closePilotRuleModal();
+}
+
 function reviveVesselRow(row) {
   return {
     ...row,
@@ -830,8 +1016,14 @@ function buildHeader() {
     const th = document.createElement("th");
     th.className = "pilot-head";
     th.style.background = pilot.color;
-    th.textContent = pilot.code;
     th.title = pilot.name;
+    const button = document.createElement("button");
+    button.className = "pilot-head-button";
+    button.type = "button";
+    button.dataset.pilotRule = pilot.code;
+    button.textContent = pilot.code;
+    button.title = `Edit ${pilot.name} rule`;
+    th.appendChild(button);
     pilotHeader.appendChild(th);
   });
 
@@ -2196,6 +2388,10 @@ workbookLogClose.addEventListener("click", closeWorkbookLogModal);
 workbookLogDone.addEventListener("click", closeWorkbookLogModal);
 versionModalClose.addEventListener("click", closeVersionModal);
 versionModalDone.addEventListener("click", closeVersionModal);
+pilotRuleForm.addEventListener("submit", savePilotRuleEdit);
+pilotRuleModalClose.addEventListener("click", closePilotRuleModal);
+pilotRuleCancel.addEventListener("click", closePilotRuleModal);
+pilotRuleReset.addEventListener("click", resetPilotRule);
 workbookVesselModal.addEventListener("click", (event) => {
   if (event.target === workbookVesselModal) closeWorkbookEditModal();
 });
@@ -2205,6 +2401,9 @@ workbookLogModal.addEventListener("click", (event) => {
 versionModal.addEventListener("click", (event) => {
   if (event.target === versionModal) closeVersionModal();
 });
+pilotRuleModal.addEventListener("click", (event) => {
+  if (event.target === pilotRuleModal) closePilotRuleModal();
+});
 eventItemsBody.addEventListener("click", (event) => {
   const viewButton = event.target.closest(".event-view-button");
   if (viewButton) openVersionModal(viewButton.dataset.versionId);
@@ -2213,6 +2412,10 @@ eventItemsBody.addEventListener("click", (event) => {
 });
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => switchTab(button.dataset.tab));
+});
+pilotHeader.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-pilot-rule]");
+  if (button) openPilotRuleModal(button.dataset.pilotRule);
 });
 window.addEventListener("storage", (event) => {
   if (event.key === AGENT_FILE_STORAGE_KEY) refreshVesselRowsFromAgent();

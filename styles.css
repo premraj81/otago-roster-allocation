@@ -212,6 +212,26 @@ h1 {
   display: block;
 }
 
+.pilot-head-button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(18, 38, 58, 0.2);
+  border-radius: 999px;
+  color: #111;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 950;
+  justify-content: center;
+  min-height: 21px;
+  min-width: 32px;
+  padding: 0 5px;
+}
+
+.pilot-head-button:hover {
+  background: rgba(255, 255, 255, 0.42);
+  border-color: rgba(18, 38, 58, 0.38);
+}
+
 .agent-frame {
   background: #ffffff;
   border: 1px solid #cbd4dc;
@@ -800,6 +820,25 @@ h1 {
 
 .version-modal-card {
   max-width: 760px;
+}
+
+.pilot-rule-card {
+  max-width: 680px;
+}
+
+.pilot-rule-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pilot-rule-grid input[readonly] {
+  background: #eef4f7;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.pilot-rule-grid input[type="color"] {
+  min-height: 38px;
+  padding: 3px;
 }
 
 .version-details {
@@ -1965,6 +2004,7 @@ tbody tr.week-orange .cell-select {
   }
 
   .vessel-form-grid,
+  .pilot-rule-grid,
   .vessel-log-layout {
     grid-template-columns: 1fr;
   }
