@@ -148,6 +148,7 @@ let rosterNeedsRebuild = true;
 let vesselRenderCache = null;
 const rosterSubtitle = document.querySelector("#rosterSubtitle");
 const saveVersionButton = document.querySelector("#saveVersionButton");
+const mobileShortcutButton = document.querySelector("#mobileShortcutButton");
 const seasonSelect = document.querySelector("#seasonSelect");
 const monthSelect = document.querySelector("#monthSelect");
 const pilotHeader = document.querySelector("#pilotHeader");
@@ -2457,10 +2458,18 @@ function switchTab(tabName) {
   if (tabName === "mobile") renderMobileVersion();
 }
 
+function preferredInitialTab() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedTab = params.get("tab");
+  if (requestedTab && document.querySelector(`[data-tab="${CSS.escape(requestedTab)}"]`)) return requestedTab;
+  return window.matchMedia("(max-width: 820px)").matches ? "mobile" : "workbook";
+}
+
 seasonSelect.addEventListener("change", () => {
   setRosterSeason(Number(seasonSelect.value));
 });
 saveVersionButton.addEventListener("click", saveRosterVersion);
+mobileShortcutButton.addEventListener("click", () => switchTab("mobile"));
 monthSelect.addEventListener("change", () => {
   scrollToDate(monthSelect.value);
 });
@@ -2562,7 +2571,7 @@ buildPilotRecordSelect();
 buildSeasonSelect();
 updateSeasonTitle();
 buildMonthSelect();
-renderWorkbook();
+switchTab(preferredInitialTab());
 refreshShipSpecs({ seedIfMissing: true });
 refreshSharedState();
 refreshEventLog({ seedIfMissing: true });
