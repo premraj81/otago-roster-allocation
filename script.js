@@ -2461,7 +2461,8 @@ function switchTab(tabName) {
 function preferredInitialTab() {
   const params = new URLSearchParams(window.location.search);
   const requestedTab = params.get("tab");
-  if (requestedTab && document.querySelector(`[data-tab="${CSS.escape(requestedTab)}"]`)) return requestedTab;
+  const allowedTabs = new Set(["workbook", "roster", "agent", "polCruise", "printItems", "events", "mobile"]);
+  if (requestedTab && allowedTabs.has(requestedTab)) return requestedTab;
   return window.matchMedia("(max-width: 820px)").matches ? "mobile" : "workbook";
 }
 
