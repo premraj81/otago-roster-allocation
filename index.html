@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Otago Pilot Roster 2026-27</title>
-    <link rel="stylesheet" href="styles.css?v=20260524-pilot-rules-1" />
+    <link rel="stylesheet" href="styles.css?v=20260524-mobile-version-1" />
   </head>
   <body>
     <main class="app">
@@ -38,6 +38,7 @@
         <button class="tab-button" type="button" data-tab="polCruise">POL Cruise Numbers</button>
         <button class="tab-button" type="button" data-tab="printItems">Records</button>
         <button class="tab-button" type="button" data-tab="events">Events</button>
+        <button class="tab-button" type="button" data-tab="mobile">Mobile Version</button>
       </nav>
 
       <section class="tab-panel" id="rosterTab">
@@ -290,6 +291,19 @@
           </div>
         </section>
       </section>
+
+      <section class="tab-panel" id="mobileTab">
+        <section class="mobile-panel" aria-label="Mobile vessel schedule">
+          <header class="mobile-panel-head">
+            <div>
+              <p class="eyebrow">Phone view</p>
+              <h2>Mobile Version</h2>
+            </div>
+            <div class="mobile-summary" id="mobileSummary"></div>
+          </header>
+          <div class="mobile-vessel-list" id="mobileVesselList"></div>
+        </section>
+      </section>
     </main>
 
     <div class="vessel-modal hidden" id="workbookVesselModal" role="dialog" aria-modal="true" aria-labelledby="workbookModalTitle">
@@ -456,6 +470,6 @@
     <script src="shared-store.js?v=20260523-events-1"></script>
     <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
     <script src="ship-specs.js?v=20260524-ship-specs-1"></script>
-    <script src="script.js?v=20260524-pilot-rules-2"></script>
+    <script src="script.js?v=20260524-mobile-version-1"></script>
   </body>
 </html>

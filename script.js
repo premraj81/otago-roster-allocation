@@ -167,6 +167,9 @@ const pilotRecordsView = document.querySelector("#pilotRecordsView");
 const pilotRecordSelect = document.querySelector("#pilotRecordSelect");
 const pilotRecordsBody = document.querySelector("#pilotRecordsBody");
 const eventsTab = document.querySelector("#eventsTab");
+const mobileTab = document.querySelector("#mobileTab");
+const mobileSummary = document.querySelector("#mobileSummary");
+const mobileVesselList = document.querySelector("#mobileVesselList");
 const workbookTab = document.querySelector("#workbookTab");
 const workbookBody = document.querySelector("#workbookBody");
 const workbookSummary = document.querySelector("#workbookSummary");
@@ -490,6 +493,7 @@ function applyDataChangeToActiveViews({ rows = false, counts = false, records = 
 
   if (rows && activeTabName === "workbook") renderWorkbook();
   if ((rows || records) && activeTabName === "printItems") renderPrintItems();
+  if (rows && activeTabName === "mobile") renderMobileVersion();
 }
 
 async function seedOrLoadSharedState(key, localValue) {
@@ -1887,6 +1891,79 @@ function printableVesselItems() {
     .sort((a, b) => a.date - b.date || a.vessel.localeCompare(b.vessel));
 }
 
+function mobileVesselItems() {
+  return vesselRows
+    .map((row) => {
+      const rosterDate = shipRosterDate(row);
+      if (!vesselClean(row.vessel) || !rosterDate || rosterDate < rosterStart || rosterDate > rosterEnd) {
+        return null;
+      }
+
+      const assigned = vesselPilotsForRow(row).filter(Boolean);
+      const pilotsAssigned = assigned
+        .map((code) => code === SOUTH_PORT_ALLOCATION ? "South Port" : code)
+        .join(", ");
+      const route = vesselCategory(row);
+
+      return {
+        key: vesselAllocationKey(row),
+        date: rosterDate,
+        vessel: row.vessel || "Unnamed vessel",
+        company: workbookCompany(row),
+        route,
+        routeClass: vesselRouteClass(route),
+        pilots: pilotsAssigned || "Unallocated",
+        embark: vesselClean(row.embark) || "-",
+        embarkDate: formatRecordDate(row.embarkDate, rosterDate) || "-",
+        fiordlandDate: formatRecordDate(row.etaFiordland, rosterDate) || "-",
+        disembark: vesselClean(row.disembark) || "-",
+        disembarkDate: formatRecordDate(row.disembarkDate) || "-",
+        fromTo: vesselClean(row.fromTo),
+        stewart: vesselHasStewart(row),
+        comments: vesselClean(row.comments),
+        movement: vesselClean(row.movement),
+        sortDate: rosterDate,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.sortDate - b.sortDate || a.vessel.localeCompare(b.vessel));
+}
+
+function renderMobileVersion() {
+  const items = mobileVesselItems();
+  const allocated = items.filter((item) => item.pilots !== "Unallocated").length;
+  mobileSummary.innerHTML = `
+    <span>Total <strong>${items.length}</strong></span>
+    <span>Allocated <strong>${allocated}</strong></span>
+  `;
+
+  mobileVesselList.innerHTML = items.length
+    ? items
+        .map((item, index) => `
+          <article class="mobile-vessel-card mobile-tone-${(index % 5) + 1}">
+            <div class="mobile-card-top">
+              <div>
+                <time>${escapeHtml(formatShortDate(item.date))}</time>
+                <h3>${escapeHtml(item.vessel)}</h3>
+                ${item.company ? `<p>${escapeHtml(item.company)}</p>` : ""}
+              </div>
+              <span class="mobile-route ${escapeHtml(item.routeClass)}">${escapeHtml(item.route)}</span>
+            </div>
+            <div class="mobile-card-grid">
+              <span>Pilot</span><strong>${escapeHtml(item.pilots)}</strong>
+              <span>Embark</span><strong>${escapeHtml(item.embark)}<small>${escapeHtml(item.embarkDate)}</small></strong>
+              <span>Fiordland</span><strong>${escapeHtml(item.fiordlandDate)}</strong>
+              <span>Disembark</span><strong>${escapeHtml(item.disembark)}<small>${escapeHtml(item.disembarkDate)}</small></strong>
+              ${item.fromTo ? `<span>From / To</span><strong>${escapeHtml(item.fromTo)}</strong>` : ""}
+              ${item.stewart ? `<span>Stewart Island</span><strong class="mobile-stewart">Yes</strong>` : ""}
+            </div>
+            ${item.comments || item.movement ? `<div class="mobile-card-note">${escapeHtml([item.movement, item.comments].filter(Boolean).join(" | "))}</div>` : ""}
+          </article>
+        `)
+        .join("")
+    : `<div class="mobile-empty">No vessel visits for ${escapeHtml(seasonLabel(selectedSeasonStart))}.</div>`;
+}
+
 function companyForVesselRow(row) {
   const assigned = vesselPilotsForRow(row);
   if (assigned.includes(SOUTH_PORT_ALLOCATION)) return "South Port";
@@ -2362,7 +2439,7 @@ function scrollToDate(key) {
 
 function switchTab(tabName) {
   activeTabName = tabName;
-  if (tabName === "roster" || tabName === "printItems" || tabName === "workbook") refreshVesselRowsFromAgent();
+  if (tabName === "roster" || tabName === "printItems" || tabName === "workbook" || tabName === "mobile") refreshVesselRowsFromAgent();
   tabButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === tabName);
   });
@@ -2372,10 +2449,12 @@ function switchTab(tabName) {
   printItemsTab.classList.toggle("active", tabName === "printItems");
   workbookTab.classList.toggle("active", tabName === "workbook");
   eventsTab.classList.toggle("active", tabName === "events");
+  mobileTab.classList.toggle("active", tabName === "mobile");
   if (tabName === "roster" && rosterNeedsRebuild) rebuildRosterPreservingScroll();
   if (tabName === "printItems") renderPrintItems();
   if (tabName === "workbook") renderWorkbook();
   if (tabName === "events") refreshEventLog();
+  if (tabName === "mobile") renderMobileVersion();
 }
 
 seasonSelect.addEventListener("change", () => {
