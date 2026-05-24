@@ -342,7 +342,7 @@ function loadVersionHistory() {
 function loadShipSpecs() {
   try {
     const saved = localStorage.getItem(SHIP_SPECS_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : { ...(window.SHIP_SPECS || {}) };
+    return { ...(saved ? JSON.parse(saved) : {}), ...(window.SHIP_SPECS || {}) };
   } catch {
     return { ...(window.SHIP_SPECS || {}) };
   }
@@ -1364,7 +1364,9 @@ function workbookDisplayStatus(row) {
 }
 
 function workbookCompany(row) {
-  return vesselClean(row.company) || vesselClean(shipParticularsFor(row).company);
+  const company = vesselClean(row.company) || vesselClean(shipParticularsFor(row).company);
+  if (company) return company;
+  return isPrincessVessel(row) ? "Princess Cruises" : "";
 }
 
 function workbookService(row) {
@@ -1424,8 +1426,16 @@ function vesselLoa(row) {
 
 function rosterVesselDisplayName(row) {
   const name = vesselClean(row.vessel) || "Unnamed vessel";
-  const company = workbookCompany(row).toLowerCase();
-  return company.includes("princess") ? `(${name})` : name;
+  return isPrincessVessel(row) ? `(${name})` : name;
+}
+
+function isPrincessVessel(row) {
+  const company = workbookCompanyWithoutInference(row).toLowerCase();
+  return company.includes("princess") || /\bprincess\b/i.test(vesselClean(row.vessel));
+}
+
+function workbookCompanyWithoutInference(row) {
+  return vesselClean(row.company) || vesselClean(shipParticularsFor(row).company);
 }
 
 function isRecentAgentUpdate(row) {

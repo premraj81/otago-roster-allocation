@@ -1798,8 +1798,8 @@ tbody tr:hover > :not(.ship-cell) {
 .ship-line {
   align-items: center;
   display: flex;
-  gap: 5px;
-  justify-content: space-between;
+  gap: 2px;
+  justify-content: flex-start;
 }
 
 .ship-pilot-badge {
@@ -1811,6 +1811,7 @@ tbody tr:hover > :not(.ship-cell) {
   font-weight: 800;
   min-height: 12px;
   min-width: 22px;
+  margin-left: auto;
   padding: 1px 4px;
   text-align: center;
 }
