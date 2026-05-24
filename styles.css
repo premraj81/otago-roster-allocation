@@ -1045,6 +1045,34 @@ h1 {
   justify-content: flex-end;
 }
 
+.mobile-head-tools {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.mobile-pilot-filter {
+  color: rgba(255, 255, 255, 0.82);
+  display: grid;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 3px;
+}
+
+.mobile-pilot-filter select {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 999px;
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 900;
+  min-height: 28px;
+  min-width: 150px;
+  padding: 0 9px;
+}
+
 .mobile-summary span {
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -2219,6 +2247,17 @@ tbody tr.week-orange .cell-select {
     align-items: flex-start;
     flex-direction: column;
     padding: 11px;
+  }
+
+  .mobile-head-tools,
+  .mobile-summary {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .mobile-pilot-filter,
+  .mobile-pilot-filter select {
+    width: 100%;
   }
 
   .mobile-vessel-list {

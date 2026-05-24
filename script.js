@@ -171,6 +171,7 @@ const eventsTab = document.querySelector("#eventsTab");
 const mobileTab = document.querySelector("#mobileTab");
 const mobileSummary = document.querySelector("#mobileSummary");
 const mobileVesselList = document.querySelector("#mobileVesselList");
+const mobilePilotSelect = document.querySelector("#mobilePilotSelect");
 const workbookTab = document.querySelector("#workbookTab");
 const workbookBody = document.querySelector("#workbookBody");
 const workbookSummary = document.querySelector("#workbookSummary");
@@ -599,6 +600,7 @@ async function refreshSharedState() {
       replaceLocalStorageJson(PILOT_SETTINGS_STORAGE_KEY, serializePilotSettings());
       buildHeader();
       buildPilotRecordSelect();
+      buildMobilePilotSelect();
       rowsChanged = true;
       recordsChanged = true;
     }
@@ -922,6 +924,7 @@ async function savePilotRuleEdit(event) {
   await savePilotSettings();
   buildHeader();
   buildPilotRecordSelect();
+  buildMobilePilotSelect();
   if (activeTabName === "roster") rebuildRosterPreservingScroll();
   else rosterNeedsRebuild = true;
   recordEvent("roster", "Pilot rule updated", `${pilot.code} ${before.name || ""} -> ${pilot.name}; ${pilot.onDays} on / ${pilot.offDays} off`);
@@ -947,6 +950,7 @@ async function resetPilotRule() {
   await savePilotSettings();
   buildHeader();
   buildPilotRecordSelect();
+  buildMobilePilotSelect();
   if (activeTabName === "roster") rebuildRosterPreservingScroll();
   else rosterNeedsRebuild = true;
   recordEvent("roster", "Pilot rule reset", `${pilot.code} reset to default rule`);
@@ -1429,6 +1433,15 @@ function buildPilotRecordSelect() {
     .join("");
 }
 
+function buildMobilePilotSelect() {
+  const current = mobilePilotSelect.value || "ALL";
+  mobilePilotSelect.innerHTML = `
+    <option value="ALL">All pilots</option>
+    ${pilots.map((pilot) => `<option value="${pilot.code}">${pilot.code} - ${escapeHtml(pilot.name)}</option>`).join("")}
+  `;
+  mobilePilotSelect.value = [...mobilePilotSelect.options].some((option) => option.value === current) ? current : "ALL";
+}
+
 function renderPilotRecords() {
   const pilotCode = pilotRecordSelect.value || pilots[0]?.code || "";
   const items = pilotRecordItems(pilotCode);
@@ -1893,6 +1906,7 @@ function printableVesselItems() {
 }
 
 function mobileVesselItems() {
+  const selectedPilot = mobilePilotSelect.value || "ALL";
   return vesselRows
     .map((row) => {
       const rosterDate = shipRosterDate(row);
@@ -1901,6 +1915,7 @@ function mobileVesselItems() {
       }
 
       const assigned = vesselPilotsForRow(row).filter(Boolean);
+      if (selectedPilot !== "ALL" && !assigned.includes(selectedPilot)) return null;
       const pilotsAssigned = assigned
         .map((code) => code === SOUTH_PORT_ALLOCATION ? "South Port" : code)
         .join(", ");
@@ -1932,8 +1947,10 @@ function mobileVesselItems() {
 
 function renderMobileVersion() {
   const items = mobileVesselItems();
+  const selectedPilot = mobilePilotSelect.value || "ALL";
   const allocated = items.filter((item) => item.pilots !== "Unallocated").length;
   mobileSummary.innerHTML = `
+    <span>${selectedPilot === "ALL" ? "All pilots" : escapeHtml(selectedPilot)}</span>
     <span>Total <strong>${items.length}</strong></span>
     <span>Allocated <strong>${allocated}</strong></span>
   `;
@@ -1962,7 +1979,7 @@ function renderMobileVersion() {
           </article>
         `)
         .join("")
-    : `<div class="mobile-empty">No vessel visits for ${escapeHtml(seasonLabel(selectedSeasonStart))}.</div>`;
+    : `<div class="mobile-empty">No vessel visits for ${escapeHtml(selectedPilot === "ALL" ? seasonLabel(selectedSeasonStart) : selectedPilot)}.</div>`;
 }
 
 function companyForVesselRow(row) {
@@ -2479,6 +2496,7 @@ recordTabs.forEach((button) => {
   button.addEventListener("click", () => switchRecordView(button.dataset.recordView));
 });
 pilotRecordSelect.addEventListener("change", renderPilotRecords);
+mobilePilotSelect.addEventListener("change", renderMobileVersion);
 eventRefreshButton.addEventListener("click", () => refreshEventLog());
 eventClearButton.addEventListener("click", () => clearAllEvents());
 workbookBody.addEventListener("click", handleWorkbookActionClick);
@@ -2569,6 +2587,7 @@ rosterBody.addEventListener("click", (event) => {
 
 buildHeader();
 buildPilotRecordSelect();
+buildMobilePilotSelect();
 buildSeasonSelect();
 updateSeasonTitle();
 buildMonthSelect();

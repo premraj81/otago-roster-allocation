@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Otago Pilot Roster 2026-27</title>
-    <link rel="stylesheet" href="styles.css?v=20260524-mobile-top-only-1" />
+    <link rel="stylesheet" href="styles.css?v=20260524-mobile-pilot-filter-1" />
   </head>
   <body>
     <main class="app">
@@ -299,7 +299,13 @@
               <p class="eyebrow">Phone view</p>
               <h2>Mobile Version</h2>
             </div>
-            <div class="mobile-summary" id="mobileSummary"></div>
+            <div class="mobile-head-tools">
+              <label class="mobile-pilot-filter">
+                Select pilot
+                <select id="mobilePilotSelect"></select>
+              </label>
+              <div class="mobile-summary" id="mobileSummary"></div>
+            </div>
           </header>
           <div class="mobile-vessel-list" id="mobileVesselList"></div>
         </section>
@@ -470,6 +476,6 @@
     <script src="shared-store.js?v=20260523-events-1"></script>
     <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
     <script src="ship-specs.js?v=20260524-ship-specs-1"></script>
-    <script src="script.js?v=20260524-mobile-top-only-1"></script>
+    <script src="script.js?v=20260524-mobile-pilot-filter-1"></script>
   </body>
 </html>
