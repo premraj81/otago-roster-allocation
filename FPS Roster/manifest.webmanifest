@@ -1,0 +1,18 @@
+{
+  "name": "FPS Roster",
+  "short_name": "FPS Roster",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf3f5",
+  "theme_color": "#0f766e",
+  "description": "Mobile Fiordland pilot roster connected to the Port Otago roster data.",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
