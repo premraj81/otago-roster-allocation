@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FPS Roster" />
+    <title>FPS Roster</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css?v=20260526-fps-roster-1" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="../shared-store.js?v=20260523-events-1"></script>
+    <script defer src="../ship-specs.js?v=20260524-ship-specs-1"></script>
+    <script defer src="./app.js?v=20260526-fps-roster-1"></script>
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <div>
+          <p>Fiordland Pilot Schedule</p>
+          <h1>FPS Roster</h1>
+        </div>
+        <button id="refreshButton" type="button">Refresh</button>
+      </header>
+
+      <section class="settings">
+        <label>
+          Pilot
+          <select id="pilotSelect"></select>
+        </label>
+        <label>
+          Reminder
+          <select id="reminderSelect">
+            <option value="0">Off</option>
+            <option value="1">1 hour before</option>
+            <option value="24">1 day before</option>
+            <option value="48">2 days before</option>
+            <option value="72">3 days before</option>
+          </select>
+        </label>
+        <button id="notifyButton" type="button">Enable Notifications</button>
+      </section>
+
+      <section class="status-strip">
+        <span id="connectionStatus">Loading shared data...</span>
+        <span id="summaryText">0 vessels</span>
+      </section>
+
+      <section class="ship-list" id="shipList" aria-label="Vessel list"></section>
+    </main>
+  </body>
+</html>
