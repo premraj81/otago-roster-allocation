@@ -24,9 +24,8 @@ let reminderTimers = [];
 
 const els = {
   pilotSelect: document.querySelector("#pilotSelect"),
-  reminderSelect: document.querySelector("#reminderSelect"),
-  notifyButton: document.querySelector("#notifyButton"),
-  refreshButton: document.querySelector("#refreshButton"),
+  seasonSelect: document.querySelector("#seasonSelect"),
+  monthSelect: document.querySelector("#monthSelect"),
   connectionStatus: document.querySelector("#connectionStatus"),
   summaryText: document.querySelector("#summaryText"),
   shipList: document.querySelector("#shipList")
@@ -68,9 +67,9 @@ function formatRecordDate(value, fallback = null) {
 
 function prefs() {
   try {
-    return JSON.parse(localStorage.getItem(APP_PREFS_KEY)) || { pilot: "ALL", reminderHours: "0", remindersSent: {} };
+    return JSON.parse(localStorage.getItem(APP_PREFS_KEY)) || { pilot: "ALL", season: "2026", month: "ALL", reminderHours: "0", remindersSent: {} };
   } catch {
-    return { pilot: "ALL", reminderHours: "0", remindersSent: {} };
+    return { pilot: "ALL", season: "2026", month: "ALL", reminderHours: "0", remindersSent: {} };
   }
 }
 
@@ -178,13 +177,55 @@ function pilotOptions() {
   return defaultPilots.map(([code, fallback]) => [code, settings[code]?.name || fallback]);
 }
 
+function seasonLabel(startYear) {
+  return `${startYear}/${Number(startYear) + 1}`;
+}
+
+function seasonForDate(date) {
+  return date.getMonth() >= 9 ? date.getFullYear() : date.getFullYear() - 1;
+}
+
+function availableSeasons() {
+  const seasons = new Set([2026, 2027, 2028, 2029, 2030]);
+  vesselRows.forEach((row) => {
+    const rosterDate = shipRosterDate(row);
+    if (rosterDate) seasons.add(seasonForDate(rosterDate));
+  });
+  return [...seasons].sort((a, b) => a - b);
+}
+
+function monthLabel(monthKey) {
+  if (monthKey === "ALL") return "All months";
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-NZ", { month: "short", year: "numeric" }).format(new Date(year, month - 1, 1));
+}
+
+function buildSeasonMonthSelects() {
+  const pref = prefs();
+  const seasons = availableSeasons();
+  els.seasonSelect.innerHTML = seasons.map((season) => `<option value="${season}">${seasonLabel(season)}</option>`).join("");
+  els.seasonSelect.value = seasons.includes(Number(pref.season)) ? String(pref.season) : String(seasons[0] || 2026);
+
+  const selectedSeason = Number(els.seasonSelect.value);
+  const months = new Set(["ALL"]);
+  vesselRows.forEach((row) => {
+    const rosterDate = shipRosterDate(row);
+    if (rosterDate && seasonForDate(rosterDate) === selectedSeason) {
+      months.add(`${rosterDate.getFullYear()}-${String(rosterDate.getMonth() + 1).padStart(2, "0")}`);
+    }
+  });
+  els.monthSelect.innerHTML = [...months]
+    .map((month) => `<option value="${month}">${monthLabel(month)}</option>`)
+    .join("");
+  els.monthSelect.value = [...els.monthSelect.options].some((option) => option.value === pref.month) ? pref.month : "ALL";
+}
+
 function buildPilotSelect() {
   const pref = prefs();
   els.pilotSelect.innerHTML = `<option value="ALL">All pilots</option>${pilotOptions()
     .map(([code, name]) => `<option value="${code}">${code} - ${name}</option>`)
     .join("")}`;
   els.pilotSelect.value = pref.pilot || "ALL";
-  els.reminderSelect.value = pref.reminderHours || "0";
 }
 
 async function loadSharedData({ notifyChanges = false } = {}) {
@@ -215,6 +256,7 @@ async function loadSharedData({ notifyChanges = false } = {}) {
   pilotSettings = settings.data || {};
 
   buildPilotSelect();
+  buildSeasonMonthSelects();
   render();
   scheduleReminders();
   els.connectionStatus.textContent = `Updated ${new Date().toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit" })}`;
@@ -228,10 +270,15 @@ function routeClass(route) {
 
 function visibleItems() {
   const selectedPilot = els.pilotSelect.value || "ALL";
+  const selectedSeason = Number(els.seasonSelect.value || prefs().season || 2026);
+  const selectedMonth = els.monthSelect.value || "ALL";
   return vesselRows
     .map((row) => {
       const rosterDate = shipRosterDate(row);
       if (!clean(row.vessel) || !rosterDate) return null;
+      if (seasonForDate(rosterDate) !== selectedSeason) return null;
+      const monthKey = `${rosterDate.getFullYear()}-${String(rosterDate.getMonth() + 1).padStart(2, "0")}`;
+      if (selectedMonth !== "ALL" && monthKey !== selectedMonth) return null;
       const assigned = allocationsFor(row);
       if (selectedPilot !== "ALL" && !assigned.includes(selectedPilot)) return null;
       const route = vesselCategory(row);
@@ -354,15 +401,21 @@ els.pilotSelect.addEventListener("change", () => {
   scheduleReminders();
 });
 
-els.reminderSelect.addEventListener("change", () => {
+els.seasonSelect.addEventListener("change", () => {
   const pref = prefs();
-  pref.reminderHours = els.reminderSelect.value;
+  pref.season = els.seasonSelect.value;
+  pref.month = "ALL";
   savePrefs(pref);
-  scheduleReminders();
+  buildSeasonMonthSelects();
+  render();
 });
 
-els.notifyButton.addEventListener("click", enableNotifications);
-els.refreshButton.addEventListener("click", () => loadSharedData({ notifyChanges: false }));
+els.monthSelect.addEventListener("change", () => {
+  const pref = prefs();
+  pref.month = els.monthSelect.value;
+  savePrefs(pref);
+  render();
+});
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js").catch(() => {});

@@ -1,9 +1,9 @@
-const CACHE_NAME = "fps-roster-v1";
+const CACHE_NAME = "fps-roster-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=20260526-fps-roster-1",
-  "./app.js?v=20260526-fps-roster-1",
+  "./styles.css?v=20260526-fps-roster-simple-1",
+  "./app.js?v=20260526-fps-roster-simple-1",
   "./manifest.webmanifest",
   "./icon.svg",
   "../shared-store.js?v=20260523-events-1",

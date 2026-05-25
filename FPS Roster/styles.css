@@ -51,16 +51,8 @@ select {
   padding: 16px;
 }
 
-.hero p {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 11px;
-  font-weight: 900;
-  margin: 0 0 3px;
-  text-transform: uppercase;
-}
-
 .hero h1 {
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1;
   margin: 0;
 }
@@ -88,7 +80,7 @@ select {
 .settings {
   display: grid;
   gap: 8px;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   padding: 10px;
 }
 
@@ -116,6 +108,12 @@ select {
 .settings button {
   background: linear-gradient(135deg, #6554b8, #0b84b3);
   grid-column: 1 / -1;
+}
+
+@media (max-width: 520px) {
+  .settings {
+    grid-template-columns: 1fr;
+  }
 }
 
 .status-strip {
