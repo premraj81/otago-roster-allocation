@@ -1597,9 +1597,13 @@ function renderPrintItems() {
 }
 
 function buildPilotRecordSelect() {
+  const current = pilotRecordSelect.value || pilots[0]?.code || "";
   pilotRecordSelect.innerHTML = pilots
     .map((pilot) => `<option value="${pilot.code}">${pilot.code} - ${escapeHtml(pilot.name)}</option>`)
     .join("");
+  if ([...pilotRecordSelect.options].some((option) => option.value === current)) {
+    pilotRecordSelect.value = current;
+  }
 }
 
 function buildMobilePilotSelect() {
@@ -1621,19 +1625,27 @@ function renderPilotRecords() {
         .map((item) => `
           <tr>
             <td>${escapeHtml(item.vessel)}</td>
+            <td>${escapeHtml(item.number)}</td>
+            <td>${escapeHtml(item.direction)}</td>
+            <td>${escapeHtml(item.loa)}</td>
             <td>${escapeHtml(item.embark)}</td>
             <td>${escapeHtml(item.fiordlandDate)}</td>
             <td>${escapeHtml(item.disembarkPlace)}</td>
             <td>${escapeHtml(item.disembarkDate)}</td>
+            <td class="${item.stewart ? "pilot-record-stewart" : ""}">${escapeHtml(item.stewart ? "Yes" : "")}</td>
           </tr>
         `)
         .join("")
-    : `<tr><td colspan="5" class="record-empty">No Fiordland vessel records for ${escapeHtml(pilot?.code || "this pilot")}.</td></tr>`;
+    : `<tr><td colspan="9" class="record-empty">No Fiordland vessel records for ${escapeHtml(pilot?.code || "this pilot")}.</td></tr>`;
 
   if (pilotRecordsView.classList.contains("active")) {
+    const northCount = items.filter((item) => item.direction === "North Bound").length;
+    const southCount = items.filter((item) => item.direction === "South Bound").length;
     printSummary.innerHTML = `
       <span>Pilot <strong>${escapeHtml(pilot?.code || "-")}</strong></span>
       <span>Vessels <strong>${items.length}</strong></span>
+      <span>NB <strong>${northCount}</strong></span>
+      <span>SB <strong>${southCount}</strong></span>
     `;
   }
 }
@@ -1649,15 +1661,19 @@ function pilotRecordItems(pilotCode) {
 
       return {
         vessel: row.vessel || "Unnamed vessel",
+        direction: vesselCategory(row),
+        loa: vesselLoa(row) ? `${vesselLoa(row)}m` : "",
         embark: [vesselClean(row.embark) || "-", formatRecordDate(row.embarkDate, rosterDate)].filter(Boolean).join(" - "),
         fiordlandDate: formatRecordDate(row.etaFiordland, rosterDate) || "-",
         disembarkPlace: vesselClean(row.disembark) || "-",
         disembarkDate: formatRecordDate(row.disembarkDate) || "-",
+        stewart: vesselHasStewart(row),
         sortDate: rosterDate,
       };
     })
     .filter(Boolean)
-    .sort((a, b) => a.sortDate - b.sortDate || a.vessel.localeCompare(b.vessel));
+    .sort((a, b) => a.sortDate - b.sortDate || a.vessel.localeCompare(b.vessel))
+    .map((item, index) => ({ ...item, number: index + 1 }));
 }
 
 function formatRecordDate(value, fallback = null) {
@@ -1689,7 +1705,7 @@ function renderWorkbook() {
   workbookBody.innerHTML = rows.length
     ? rows
         .map((row) => `
-          <tr class="${workbookRowStatusClass(row.status)} ${row.agentUpdated ? "workbook-row-agent-updated" : ""}">
+          <tr class="${workbookRowStatusClass(row.status)} ${row.agentUpdated ? "workbook-row-agent-updated" : ""} ${row.service === "SP" ? "workbook-row-south-port" : ""}">
             <td>${row.status ? `<span class="workbook-status ${workbookStatusClass(row.status)}">${escapeHtml(row.status)}</span>` : ""}</td>
             <td><span class="workbook-vessel-name">${escapeHtml(row.vessel)}</span></td>
             <td>${escapeHtml(row.company)}</td>
@@ -2095,6 +2111,7 @@ function mobileVesselItems() {
         .map((code) => code === SOUTH_PORT_ALLOCATION ? "South Port" : code)
         .join(", ");
       const route = vesselCategory(row);
+      const isSouthPort = assigned.includes(SOUTH_PORT_ALLOCATION);
 
       return {
         key: vesselAllocationKey(row),
@@ -2104,6 +2121,7 @@ function mobileVesselItems() {
         route,
         routeClass: vesselRouteClass(route),
         pilots: pilotsAssigned || "Unallocated",
+        isSouthPort,
         embark: vesselClean(row.embark) || "-",
         embarkDate: formatRecordDate(row.embarkDate, rosterDate) || "-",
         fiordlandDate: formatRecordDate(row.etaFiordland, rosterDate) || "-",
@@ -2133,7 +2151,7 @@ function renderMobileVersion() {
   mobileVesselList.innerHTML = items.length
     ? items
         .map((item, index) => `
-          <article class="mobile-vessel-card mobile-tone-${(index % 5) + 1}">
+          <article class="mobile-vessel-card mobile-tone-${(index % 5) + 1} ${item.isSouthPort ? "mobile-south-port-card" : ""}">
             <div class="mobile-card-top">
               <div>
                 <time>${escapeHtml(formatShortDate(item.date))}</time>
@@ -2143,7 +2161,7 @@ function renderMobileVersion() {
               <span class="mobile-route ${escapeHtml(item.routeClass)}">${escapeHtml(item.route)}</span>
             </div>
             <div class="mobile-card-grid">
-              <span>Pilot</span><strong>${escapeHtml(item.pilots)}</strong>
+              <span>Pilot</span><strong class="${item.isSouthPort ? "mobile-south-port-text" : ""}">${escapeHtml(item.pilots)}</strong>
               <span>Embark</span><strong>${escapeHtml(item.embark)}<small>${escapeHtml(item.embarkDate)}</small></strong>
               <span>Fiordland</span><strong>${escapeHtml(item.fiordlandDate)}</strong>
               <span>Disembark</span><strong>${escapeHtml(item.disembark)}<small>${escapeHtml(item.disembarkDate)}</small></strong>

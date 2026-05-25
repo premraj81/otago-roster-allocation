@@ -640,6 +640,18 @@ h1 {
   box-shadow: inset 4px 0 0 #facc15, inset 0 0 0 9999px rgba(250, 204, 21, 0.16);
 }
 
+.workbook-table tr.workbook-row-south-port td {
+  background: #f2f4f7 !important;
+  color: #6b7280;
+  opacity: 0.78;
+}
+
+.workbook-table tr.workbook-row-south-port td:nth-child(9),
+.workbook-table tr.workbook-row-south-port td:nth-child(10) {
+  color: #b42318;
+  font-weight: 900;
+}
+
 .workbook-action-tabs {
   display: inline-flex;
   gap: 4px;
@@ -984,12 +996,32 @@ h1 {
 
 .pilot-record-table th,
 .pilot-record-table td {
-  min-width: 170px;
+  min-width: 118px;
 }
 
 .pilot-record-table th:first-child,
 .pilot-record-table td:first-child {
-  min-width: 220px;
+  min-width: 190px;
+}
+
+.pilot-record-table th:nth-child(2),
+.pilot-record-table td:nth-child(2) {
+  min-width: 48px;
+  text-align: center;
+}
+
+.pilot-record-table th:nth-child(3),
+.pilot-record-table td:nth-child(3),
+.pilot-record-table th:nth-child(4),
+.pilot-record-table td:nth-child(4),
+.pilot-record-table th:nth-child(9),
+.pilot-record-table td:nth-child(9) {
+  min-width: 86px;
+}
+
+.pilot-record-stewart {
+  color: #c01717;
+  font-weight: 900;
 }
 
 .record-empty {
@@ -1175,6 +1207,17 @@ h1 {
 .mobile-tone-4 { background: #f8f5ff; border-left-color: #6554b8; }
 .mobile-tone-5 { background: #fff5f7; border-left-color: #db3f8a; }
 
+.mobile-south-port-card {
+  background: #f2f4f7 !important;
+  border-left-color: #b42318 !important;
+  filter: grayscale(0.35);
+  opacity: 0.72;
+}
+
+.mobile-south-port-text {
+  color: #b42318 !important;
+}
+
 .mobile-card-top {
   align-items: start;
   display: flex;
@@ -1288,8 +1331,9 @@ h1 {
 }
 
 .company-south-port {
-  color: #137a3a;
+  color: #b42318;
   font-weight: 900;
+  opacity: 0.7;
 }
 
 .company-unassigned {
@@ -2074,10 +2118,12 @@ tbody tr:hover > :not(.ship-cell) {
 }
 
 .ship-pill-inline.south-port-ship {
-  background: linear-gradient(135deg, #fff4fb, #ffd9eb) !important;
-  border-color: #ef9fc5;
-  border-left-color: #db3f8a;
-  color: #7d164b;
+  background: linear-gradient(135deg, #f5f6f8, #e5e7eb) !important;
+  border-color: #d1d5db;
+  border-left-color: #b42318;
+  color: #6b1f1f;
+  filter: grayscale(0.25);
+  opacity: 0.72;
 }
 
 .ship-variant-0 {
@@ -2139,7 +2185,7 @@ tbody tr:hover > :not(.ship-cell) {
 }
 
 .ship-pilot-badge.south-port-badge {
-  background: linear-gradient(135deg, #db3f8a, #9f1f5f);
+  background: linear-gradient(135deg, #b42318, #7f1d1d);
 }
 
 .ship-pilot-badge:empty {
