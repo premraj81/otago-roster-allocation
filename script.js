@@ -2,10 +2,12 @@ const STORAGE_KEY = "otago-roster-edits-v2";
 const VESSEL_ALLOCATION_KEY = "otago-vessel-pilot-allocations-v1";
 const AGENT_FILE_STORAGE_KEY = "fiordland-calendar-rows-v1";
 const POL_CRUISE_COUNTS_KEY = "pol-cruise-counts-v1";
+const POL_CRUISE_RECORDS_KEY = "pol-cruise-records-v1";
 const EVENT_LOG_STORAGE_KEY = "otago-event-log-v1";
 const VERSION_HISTORY_STORAGE_KEY = "otago-version-history-v1";
 const SHIP_SPECS_STORAGE_KEY = "otago-ship-specs-v1";
 const PILOT_SETTINGS_STORAGE_KEY = "otago-pilot-settings-v1";
+const AGENT_UPLOAD_META_KEY = "fiordland-calendar-upload-meta-v1";
 const SOUTH_PORT_ALLOCATION = "SOUTH_PORT";
 
 const pilots = [
@@ -149,6 +151,7 @@ let vesselRenderCache = null;
 const rosterSubtitle = document.querySelector("#rosterSubtitle");
 const saveVersionButton = document.querySelector("#saveVersionButton");
 const mobileShortcutButton = document.querySelector("#mobileShortcutButton");
+const masterClearButton = document.querySelector("#masterClearButton");
 const seasonSelect = document.querySelector("#seasonSelect");
 const monthSelect = document.querySelector("#monthSelect");
 const pilotHeader = document.querySelector("#pilotHeader");
@@ -195,6 +198,7 @@ const versionModalSubTitle = document.querySelector("#versionModalSubTitle");
 const versionDetails = document.querySelector("#versionDetails");
 const versionModalClose = document.querySelector("#versionModalClose");
 const versionModalDone = document.querySelector("#versionModalDone");
+const versionRestoreButton = document.querySelector("#versionRestoreButton");
 const pilotRuleModal = document.querySelector("#pilotRuleModal");
 const pilotRuleForm = document.querySelector("#pilotRuleForm");
 const pilotRuleModalTitle = document.querySelector("#pilotRuleModalTitle");
@@ -211,6 +215,7 @@ const pilotDaysOffField = document.querySelector("#pilotDaysOffField");
 const pilotLeaveStartField = document.querySelector("#pilotLeaveStartField");
 const pilotLeaveEndField = document.querySelector("#pilotLeaveEndField");
 let activePilotRuleCode = "";
+let activeVersionId = "";
 const eventItemsBody = document.querySelector("#eventItemsBody");
 const eventSummary = document.querySelector("#eventSummary");
 const eventRefreshButton = document.querySelector("#eventRefreshButton");
@@ -757,9 +762,18 @@ function savedVersionSnapshot() {
     vesselAllocations: JSON.parse(JSON.stringify(vesselAllocations || {})),
     vesselRows: serializeVesselRows(vesselRows),
     polCruiseCounts: JSON.parse(JSON.stringify(polCruiseCounts || {})),
+    polCruiseRecords: readLocalJson(POL_CRUISE_RECORDS_KEY, []),
     shipSpecs: JSON.parse(JSON.stringify(shipSpecs || {})),
     pilotSettings: serializePilotSettings(),
   };
+}
+
+function readLocalJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function savedVersionSummary(snapshot) {
@@ -772,36 +786,44 @@ function savedVersionSummary(snapshot) {
   return { vesselCount, allocatedCount, rosterEditCount, polCountDays };
 }
 
+async function createSavedVersion({ recordVersionEvent = true, title = null } = {}) {
+  await refreshVersionHistory({ seedIfMissing: true });
+  const versions = versionHistory.versions || [];
+  const number = versions.reduce((max, version) => Math.max(max, Number(version.number) || 0), 0) + 1;
+  const snapshot = savedVersionSnapshot();
+  const summary = savedVersionSummary(snapshot);
+  const savedAt = new Date().toISOString();
+  const version = {
+    id: `version-${number}-${Date.now()}`,
+    number,
+    title: title || `Version ${number} saved`,
+    savedAt,
+    summary,
+    snapshot,
+  };
+  versionHistory = {
+    versions: [version, ...versions].slice(0, 100),
+  };
+  localStorage.setItem(VERSION_HISTORY_STORAGE_KEY, JSON.stringify(versionHistory));
+  await saveSharedState(VERSION_HISTORY_STORAGE_KEY, versionHistory);
+  if (recordVersionEvent) {
+    await recordEvent(
+      "version",
+      version.title,
+      `${formatEventTime(savedAt)} - ${summary.vesselCount} vessels, ${summary.allocatedCount} vessel allocations, ${summary.rosterEditCount} roster edits`,
+      { versionId: version.id, versionNumber: number }
+    );
+  }
+  return version;
+}
+
 async function saveRosterVersion() {
   saveVersionButton.disabled = true;
   const previousText = saveVersionButton.textContent;
   saveVersionButton.textContent = "Saving...";
   try {
-    await refreshVersionHistory({ seedIfMissing: true });
-    const versions = versionHistory.versions || [];
-    const number = versions.reduce((max, version) => Math.max(max, Number(version.number) || 0), 0) + 1;
-    const snapshot = savedVersionSnapshot();
-    const summary = savedVersionSummary(snapshot);
-    const savedAt = new Date().toISOString();
-    const version = {
-      id: `version-${number}-${Date.now()}`,
-      number,
-      savedAt,
-      summary,
-      snapshot,
-    };
-    versionHistory = {
-      versions: [version, ...versions].slice(0, 100),
-    };
-    localStorage.setItem(VERSION_HISTORY_STORAGE_KEY, JSON.stringify(versionHistory));
-    await saveSharedState(VERSION_HISTORY_STORAGE_KEY, versionHistory);
-    await recordEvent(
-      "version",
-      `Version ${number} saved`,
-      `${formatEventTime(savedAt)} - ${summary.vesselCount} vessels, ${summary.allocatedCount} vessel allocations, ${summary.rosterEditCount} roster edits`,
-      { versionId: version.id, versionNumber: number }
-    );
-    saveVersionButton.textContent = `Saved V${number}`;
+    const version = await createSavedVersion();
+    saveVersionButton.textContent = `Saved V${version.number}`;
     setTimeout(() => {
       saveVersionButton.textContent = previousText;
     }, 1800);
@@ -824,6 +846,7 @@ async function openVersionModal(versionId) {
   await refreshVersionHistory();
   const version = latestVersionById(versionId);
   if (!version) return;
+  activeVersionId = version.id;
   const summary = version.summary || savedVersionSummary(version.snapshot || {});
   versionModalTitle.textContent = `Version ${version.number}`;
   versionModalSubTitle.textContent = `Saved ${formatEventTime(version.savedAt)}`;
@@ -843,7 +866,153 @@ async function openVersionModal(versionId) {
 }
 
 function closeVersionModal() {
+  activeVersionId = "";
   versionModal.classList.add("hidden");
+}
+
+async function restoreSavedVersion() {
+  const version = latestVersionById(activeVersionId);
+  if (!version?.snapshot) return;
+  const firstConfirm = window.confirm("You are going to restore this saved version. Current workbook, roster, agent data, POL counts, records and allocations will be replaced. Do you want to continue?");
+  if (!firstConfirm) return;
+  const secondConfirm = window.confirm("Final confirmation: restore this version now? Current live data will be overwritten.");
+  if (!secondConfirm) return;
+
+  await applySnapshot(version.snapshot);
+  await recordEvent("version", `Version ${version.number} restored`, `${formatEventTime(new Date().toISOString())} - restored saved roster data`, {
+    versionId: version.id,
+    versionNumber: version.number,
+  });
+  closeVersionModal();
+}
+
+async function applySnapshot(snapshot) {
+  selectedSeasonStart = Number(snapshot.seasonStart) || selectedSeasonStart;
+  rosterStart = seasonStartDate(selectedSeasonStart);
+  rosterEnd = seasonEndDate(selectedSeasonStart);
+  edits = snapshot.edits || {};
+  vesselAllocations = normalizeVesselAllocations(snapshot.vesselAllocations || {});
+  vesselRows = (snapshot.vesselRows || []).map(reviveVesselRow);
+  polCruiseCounts = snapshot.polCruiseCounts || {};
+  if (snapshot.pilotSettings) applyPilotSettings(snapshot.pilotSettings);
+
+  replaceLocalStorageJson(STORAGE_KEY, edits);
+  replaceLocalStorageJson(VESSEL_ALLOCATION_KEY, vesselAllocations);
+  replaceLocalStorageJson(AGENT_FILE_STORAGE_KEY, serializeVesselRows(vesselRows));
+  replaceLocalStorageJson(POL_CRUISE_COUNTS_KEY, { counts: polCruiseCounts });
+  replaceLocalStorageJson(POL_CRUISE_RECORDS_KEY, snapshot.polCruiseRecords || []);
+  replaceLocalStorageJson(PILOT_SETTINGS_STORAGE_KEY, serializePilotSettings());
+
+  lastVesselRowsSaveAt = Date.now();
+  invalidateVesselRenderCache();
+  await Promise.all([
+    saveSharedState(STORAGE_KEY, edits),
+    saveSharedState(VESSEL_ALLOCATION_KEY, vesselAllocations),
+    saveSharedState(AGENT_FILE_STORAGE_KEY, serializeVesselRows(vesselRows)),
+    saveSharedState(POL_CRUISE_COUNTS_KEY, { counts: polCruiseCounts }),
+    saveSharedState(POL_CRUISE_RECORDS_KEY, snapshot.polCruiseRecords || []),
+    saveSharedState(PILOT_SETTINGS_STORAGE_KEY, serializePilotSettings()),
+  ]);
+
+  buildHeader();
+  buildPilotRecordSelect();
+  buildMobilePilotSelect();
+  updateSeasonTitle();
+  buildMonthSelect();
+  rebuildRosterPreservingScroll();
+  renderWorkbook();
+  renderPrintItems();
+  renderMobileVersion();
+  refreshPolCruiseFrame();
+  refreshAgentFrame();
+}
+
+async function masterClearData() {
+  const firstConfirm = window.confirm("You are going to delete all live data: Workbook, Roster edits, Agent Data, POL Cruise Numbers, Records and Events. A saved backup version will be created first. Do you want to continue?");
+  if (!firstConfirm) return;
+  const secondConfirm = window.confirm("FINAL WARNING: all live data will be cleared and blank. This affects everyone using the shared web app. Clear all data now?");
+  if (!secondConfirm) return;
+
+  masterClearButton.disabled = true;
+  const previousText = masterClearButton.textContent;
+  masterClearButton.textContent = "Clearing...";
+  try {
+    const backup = await createSavedVersion({ recordVersionEvent: false, title: "Pre-clear backup" });
+    edits = {};
+    vesselAllocations = {};
+    vesselRows = [];
+    polCruiseCounts = {};
+    eventLog = { events: [] };
+    pilots.forEach((pilot) => {
+      pilot.start = "";
+      pilot.end = "";
+      pilot.onDays = 0;
+      pilot.offDays = 0;
+      pilot.leaveStart = "";
+      pilot.leaveEnd = "";
+    });
+
+    replaceLocalStorageJson(STORAGE_KEY, edits);
+    replaceLocalStorageJson(VESSEL_ALLOCATION_KEY, vesselAllocations);
+    replaceLocalStorageJson(AGENT_FILE_STORAGE_KEY, []);
+    replaceLocalStorageJson(POL_CRUISE_COUNTS_KEY, { counts: {} });
+    replaceLocalStorageJson(POL_CRUISE_RECORDS_KEY, []);
+    replaceLocalStorageJson(AGENT_UPLOAD_META_KEY, { history: [] });
+    replaceLocalStorageJson(EVENT_LOG_STORAGE_KEY, eventLog);
+    replaceLocalStorageJson(PILOT_SETTINGS_STORAGE_KEY, serializePilotSettings());
+
+    lastVesselRowsSaveAt = Date.now();
+    invalidateVesselRenderCache();
+    await Promise.all([
+      saveSharedState(STORAGE_KEY, {}),
+      saveSharedState(VESSEL_ALLOCATION_KEY, {}),
+      saveSharedState(AGENT_FILE_STORAGE_KEY, []),
+      saveSharedState(POL_CRUISE_COUNTS_KEY, { counts: {} }),
+      saveSharedState(POL_CRUISE_RECORDS_KEY, []),
+      saveSharedState(AGENT_UPLOAD_META_KEY, { history: [] }),
+      saveSharedState(EVENT_LOG_STORAGE_KEY, { events: [] }),
+      saveSharedState(PILOT_SETTINGS_STORAGE_KEY, serializePilotSettings()),
+    ]);
+
+    await recordEvent(
+      "version",
+      "Master clear backup saved",
+      `All live data cleared. Use this backup to go back to the data saved before the clear.`,
+      { versionId: backup.id, versionNumber: backup.number }
+    );
+
+    buildTable();
+    buildHeader();
+    buildPilotRecordSelect();
+    buildMobilePilotSelect();
+    renderWorkbook();
+    renderPrintItems();
+    renderMobileVersion();
+    refreshPolCruiseFrame();
+    refreshAgentFrame();
+    masterClearButton.textContent = "Cleared";
+    setTimeout(() => {
+      masterClearButton.textContent = previousText;
+    }, 1800);
+  } catch (error) {
+    console.warn("Could not master clear data", error);
+    masterClearButton.textContent = "Clear failed";
+    setTimeout(() => {
+      masterClearButton.textContent = previousText;
+    }, 2200);
+  } finally {
+    masterClearButton.disabled = false;
+  }
+}
+
+function refreshPolCruiseFrame() {
+  const frame = document.querySelector("#polCruiseTab iframe");
+  if (frame) frame.src = frame.src;
+}
+
+function refreshAgentFrame() {
+  const frame = document.querySelector("#agentTab iframe");
+  if (frame) frame.src = frame.src;
 }
 
 function buildDayOptions(select, selected) {
@@ -2494,6 +2663,7 @@ seasonSelect.addEventListener("change", () => {
 });
 saveVersionButton.addEventListener("click", saveRosterVersion);
 mobileShortcutButton.addEventListener("click", () => switchTab("mobile"));
+masterClearButton.addEventListener("click", masterClearData);
 monthSelect.addEventListener("change", () => {
   scrollToDate(monthSelect.value);
 });
@@ -2514,6 +2684,7 @@ workbookLogClose.addEventListener("click", closeWorkbookLogModal);
 workbookLogDone.addEventListener("click", closeWorkbookLogModal);
 versionModalClose.addEventListener("click", closeVersionModal);
 versionModalDone.addEventListener("click", closeVersionModal);
+versionRestoreButton.addEventListener("click", restoreSavedVersion);
 pilotRuleForm.addEventListener("submit", savePilotRuleEdit);
 pilotRuleModalClose.addEventListener("click", closePilotRuleModal);
 pilotRuleCancel.addEventListener("click", closePilotRuleModal);

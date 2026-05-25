@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Otago Pilot Roster 2026-27</title>
-    <link rel="stylesheet" href="styles.css?v=20260525-workbook-grid-1" />
+    <link rel="stylesheet" href="styles.css?v=20260526-master-clear-1" />
   </head>
   <body>
     <main class="app">
@@ -21,6 +21,7 @@
         <div class="toolbar" aria-label="Roster controls">
           <button class="save-version-button" id="saveVersionButton" type="button">Save Version</button>
           <button class="mobile-shortcut-button" id="mobileShortcutButton" type="button">Mobile Version</button>
+          <button class="master-clear-button" id="masterClearButton" type="button">Master Clear Data</button>
           <label>
             Season
             <select id="seasonSelect"></select>
@@ -424,6 +425,8 @@
         </header>
         <div class="version-details" id="versionDetails"></div>
         <footer class="vessel-modal-actions">
+          <button class="danger-action-button" id="versionRestoreButton" type="button">Restore This Version</button>
+          <span class="modal-action-spacer"></span>
           <button class="primary-action-button" id="versionModalDone" type="button">Close</button>
         </footer>
       </div>
@@ -477,6 +480,6 @@
     <script src="shared-store.js?v=20260523-events-1"></script>
     <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
     <script src="ship-specs.js?v=20260524-ship-specs-1"></script>
-    <script src="script.js?v=20260525-workbook-comments-1"></script>
+    <script src="script.js?v=20260526-master-clear-1"></script>
   </body>
 </html>
