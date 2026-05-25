@@ -286,8 +286,9 @@ h1 {
   border-radius: 16px;
   box-shadow: var(--shadow);
   margin: 0 auto;
-  max-width: 1460px;
+  max-width: none;
   overflow: hidden;
+  width: 100%;
 }
 
 .print-panel-head,
@@ -484,20 +485,49 @@ h1 {
 
 .workbook-table {
   contain: layout paint;
-  min-width: 1580px;
+  min-width: 1450px;
 }
 
 .workbook-table th,
 .workbook-table td {
   font-size: 11px;
-  min-width: 88px;
-  padding: 6px 8px;
+  min-width: 76px;
+  padding: 5px 6px;
   white-space: nowrap;
 }
 
 .workbook-table th:nth-child(2),
 .workbook-table td:nth-child(2) {
   min-width: 180px;
+}
+
+.workbook-table th:nth-child(9),
+.workbook-table td:nth-child(9),
+.workbook-table th:nth-child(10),
+.workbook-table td:nth-child(10),
+.workbook-table th:nth-child(11),
+.workbook-table td:nth-child(11) {
+  min-width: 54px;
+  max-width: 66px;
+  text-align: center;
+}
+
+.workbook-table th:nth-child(12),
+.workbook-table td:nth-child(12) {
+  min-width: 150px;
+  max-width: 190px;
+  white-space: normal;
+}
+
+.workbook-comment-text {
+  color: #44515f;
+  display: -webkit-box;
+  font-size: 10px;
+  line-height: 1.25;
+  max-height: 38px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .workbook-status {

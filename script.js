@@ -1532,6 +1532,7 @@ function renderWorkbook() {
             <td>${escapeHtml(row.service)}</td>
             <td>${escapeHtml(row.pilot)}</td>
             <td>${escapeHtml(row.trainee)}</td>
+            <td><span class="workbook-comment-text">${escapeHtml(row.comments)}</span></td>
             <td>${escapeHtml(row.stewartIsland)}</td>
             <td>${escapeHtml(row.lecturer)}</td>
             <td>${escapeHtml(row.driver)}</td>
@@ -1546,7 +1547,7 @@ function renderWorkbook() {
           </tr>
         `)
         .join("")
-    : `<tr><td colspan="17" class="workbook-empty">No workbook rows available.</td></tr>`;
+    : `<tr><td colspan="18" class="workbook-empty">No workbook rows available.</td></tr>`;
 }
 
 function workbookItems() {
@@ -1568,6 +1569,7 @@ function workbookItems() {
         service: workbookService(row),
         pilot: vesselClean(row.pilot) || pilotsForRow[0] || "",
         trainee: vesselClean(row.trainee) || pilotsForRow[1] || "",
+        comments: workbookComments(row),
         stewartIsland: vesselClean(row.stewartIsland),
         lecturer: vesselClean(row.lecturer),
         driver: vesselClean(row.driver),
@@ -1597,6 +1599,10 @@ function workbookService(row) {
   if (assigned.includes(SOUTH_PORT_ALLOCATION)) return "SP";
   if (assigned.some((code) => code !== SOUTH_PORT_ALLOCATION)) return "FPS";
   return vesselClean(row.service);
+}
+
+function workbookComments(row) {
+  return vesselClean(row.notes) || vesselClean(row.comments);
 }
 
 function workbookRowStatusClass(value) {
