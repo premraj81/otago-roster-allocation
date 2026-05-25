@@ -8,6 +8,7 @@ const VERSION_HISTORY_STORAGE_KEY = "otago-version-history-v1";
 const SHIP_SPECS_STORAGE_KEY = "otago-ship-specs-v1";
 const PILOT_SETTINGS_STORAGE_KEY = "otago-pilot-settings-v1";
 const AGENT_UPLOAD_META_KEY = "fiordland-calendar-upload-meta-v1";
+const MOBILE_PREFS_KEY = "fps-roster-preferences-v2";
 const SOUTH_PORT_ALLOCATION = "SOUTH_PORT";
 
 const pilots = [
@@ -143,6 +144,9 @@ let eventLog = loadEventLog();
 let versionHistory = loadVersionHistory();
 let shipSpecs = loadShipSpecs();
 let remoteRefreshInFlight = false;
+let initialSharedRefreshComplete = false;
+let mobileInstallPromptEvent = null;
+let mobileReminderTimers = [];
 let activeWorkbookSourceRow = null;
 let lastVesselRowsSaveAt = 0;
 let activeTabName = "workbook";
@@ -178,6 +182,10 @@ const mobilePilotSelect = document.querySelector("#mobilePilotSelect");
 const mobileSeasonSelect = document.querySelector("#mobileSeasonSelect");
 const mobileMonthSelect = document.querySelector("#mobileMonthSelect");
 const mobileMainPageButton = document.querySelector("#mobileMainPageButton");
+const mobileInstallButton = document.querySelector("#mobileInstallButton");
+const mobileNotifyButton = document.querySelector("#mobileNotifyButton");
+const mobileReminderSelect = document.querySelector("#mobileReminderSelect");
+const mobileStatus = document.querySelector("#mobileStatus");
 const workbookTab = document.querySelector("#workbookTab");
 const workbookBody = document.querySelector("#workbookBody");
 const workbookSummary = document.querySelector("#workbookSummary");
@@ -482,6 +490,22 @@ function invalidateVesselRenderCache() {
   vesselRenderCache = null;
 }
 
+function loadMobilePrefs() {
+  try {
+    return JSON.parse(localStorage.getItem(MOBILE_PREFS_KEY)) || { reminderHours: "0", remindersSent: {} };
+  } catch {
+    return { reminderHours: "0", remindersSent: {} };
+  }
+}
+
+function saveMobilePrefs(prefs) {
+  localStorage.setItem(MOBILE_PREFS_KEY, JSON.stringify(prefs));
+}
+
+function updateMobileStatus(message) {
+  if (mobileStatus) mobileStatus.textContent = message;
+}
+
 function rebuildRosterPreservingScroll() {
   const shell = document.querySelector(".table-shell");
   const left = shell?.scrollLeft || 0;
@@ -615,10 +639,16 @@ async function refreshSharedState() {
       recordsChanged = true;
     }
 
-    if (rowsChanged || countsChanged || recordsChanged) applyDataChangeToActiveViews({ rows: rowsChanged, counts: countsChanged, records: recordsChanged });
+    if (rowsChanged || countsChanged || recordsChanged) {
+      applyDataChangeToActiveViews({ rows: rowsChanged, counts: countsChanged, records: recordsChanged });
+      if (initialSharedRefreshComplete && (rowsChanged || recordsChanged)) {
+        showMobileNotification("FPS Roster updated", "Master roster data has changed.");
+      }
+    }
   } catch (error) {
     console.warn("Could not refresh shared roster data", error);
   } finally {
+    initialSharedRefreshComplete = true;
     remoteRefreshInFlight = false;
   }
 }
@@ -2220,6 +2250,75 @@ function renderMobileVersion() {
         `)
         .join("")
     : `<div class="mobile-empty">No vessel visits for ${escapeHtml(selectedPilot === "ALL" ? seasonLabel(selectedSeasonStart) : selectedPilot)}.</div>`;
+  scheduleMobileReminders(items);
+}
+
+async function installMobileApp() {
+  if (!mobileInstallPromptEvent) {
+    updateMobileStatus("Use your browser menu to Add to Home Screen.");
+    return;
+  }
+  mobileInstallPromptEvent.prompt();
+  const result = await mobileInstallPromptEvent.userChoice;
+  updateMobileStatus(result?.outcome === "accepted" ? "Install started" : "Install cancelled");
+  mobileInstallPromptEvent = null;
+}
+
+async function enableMobileNotifications() {
+  if (!("Notification" in window)) {
+    updateMobileStatus("Notifications are not supported on this device.");
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  updateMobileStatus(permission === "granted" ? "Notifications enabled" : "Notifications not enabled");
+}
+
+function showMobileNotification(title, body) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (navigator.serviceWorker?.ready) {
+    navigator.serviceWorker.ready
+      .then((registration) => registration.showNotification(title, { body, icon: "FPS%20Roster/icon.svg", badge: "FPS%20Roster/icon.svg" }))
+      .catch(() => new Notification(title, { body, icon: "FPS%20Roster/icon.svg" }));
+    return;
+  }
+  new Notification(title, { body, icon: "FPS%20Roster/icon.svg" });
+}
+
+function scheduleMobileReminders(items = mobileVesselItems()) {
+  mobileReminderTimers.forEach((timer) => clearTimeout(timer));
+  mobileReminderTimers = [];
+  const prefs = loadMobilePrefs();
+  const hours = Number(prefs.reminderHours || 0);
+  if (!hours) return;
+  const sent = prefs.remindersSent || {};
+  const now = Date.now();
+  items.forEach((item) => {
+    const reminderKey = `${item.key}:${hours}`;
+    if (sent[reminderKey]) return;
+    const reminderAt = item.date.getTime() - hours * 60 * 60 * 1000;
+    const delay = reminderAt - now;
+    if (delay <= 0 && delay > -60 * 60 * 1000) {
+      notifyMobileReminder(item, reminderKey);
+      return;
+    }
+    if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) {
+      mobileReminderTimers.push(setTimeout(() => notifyMobileReminder(item, reminderKey), delay));
+    }
+  });
+}
+
+function notifyMobileReminder(item, reminderKey) {
+  const prefs = loadMobilePrefs();
+  prefs.remindersSent = { ...(prefs.remindersSent || {}), [reminderKey]: new Date().toISOString() };
+  saveMobilePrefs(prefs);
+  showMobileNotification(`${item.vessel} reminder`, `${formatShortDate(item.date)} - ${item.route} - ${item.pilots}`);
+}
+
+function applyMobilePrefsToControls() {
+  const prefs = loadMobilePrefs();
+  mobileReminderSelect.value = [...mobileReminderSelect.options].some((option) => option.value === String(prefs.reminderHours))
+    ? String(prefs.reminderHours)
+    : "0";
 }
 
 function companyForVesselRow(row) {
@@ -2697,6 +2796,7 @@ function scrollToDate(key) {
 
 function switchTab(tabName) {
   activeTabName = tabName;
+  document.body.classList.toggle("mobile-screen-active", tabName === "mobile");
   if (tabName === "roster" || tabName === "printItems" || tabName === "workbook" || tabName === "mobile") refreshVesselRowsFromAgent();
   tabButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === tabName);
@@ -2729,6 +2829,8 @@ seasonSelect.addEventListener("change", () => {
 saveVersionButton.addEventListener("click", saveRosterVersion);
 mobileShortcutButton.addEventListener("click", () => switchTab("mobile"));
 mobileMainPageButton.addEventListener("click", () => switchTab("workbook"));
+mobileInstallButton.addEventListener("click", installMobileApp);
+mobileNotifyButton.addEventListener("click", enableMobileNotifications);
 masterClearButton.addEventListener("click", masterClearData);
 monthSelect.addEventListener("change", () => {
   scrollToDate(monthSelect.value);
@@ -2741,6 +2843,13 @@ pilotRecordSelect.addEventListener("change", renderPilotRecords);
 mobilePilotSelect.addEventListener("change", renderMobileVersion);
 mobileSeasonSelect.addEventListener("change", () => setRosterSeason(Number(mobileSeasonSelect.value)));
 mobileMonthSelect.addEventListener("change", renderMobileVersion);
+mobileReminderSelect.addEventListener("change", () => {
+  const prefs = loadMobilePrefs();
+  prefs.reminderHours = mobileReminderSelect.value;
+  saveMobilePrefs(prefs);
+  scheduleMobileReminders();
+  updateMobileStatus(mobileReminderSelect.value === "0" ? "Reminders off" : "Reminder saved");
+});
 eventRefreshButton.addEventListener("click", () => refreshEventLog());
 eventClearButton.addEventListener("click", () => clearAllEvents());
 workbookBody.addEventListener("click", handleWorkbookActionClick);
@@ -2806,6 +2915,14 @@ window.addEventListener("focus", () => {
   refreshSharedState();
   if (activeTabName === "events") refreshEventLog();
 });
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  mobileInstallPromptEvent = event;
+  updateMobileStatus("Install option is ready.");
+});
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js").catch(() => {});
+}
 setInterval(() => {
   if (!document.hidden) refreshVesselRowsFromAgent();
 }, 8000);
@@ -2835,6 +2952,7 @@ buildPilotRecordSelect();
 buildMobilePilotSelect();
 buildSeasonSelect();
 buildMobileSeasonSelect();
+applyMobilePrefsToControls();
 updateSeasonTitle();
 buildMonthSelect();
 buildMobileMonthSelect();

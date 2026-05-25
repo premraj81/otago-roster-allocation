@@ -1127,6 +1127,29 @@ h1 {
   overflow: hidden;
 }
 
+body.mobile-screen-active {
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent 34%),
+    var(--bg);
+}
+
+body.mobile-screen-active .topbar,
+body.mobile-screen-active .tabs {
+  display: none;
+}
+
+body.mobile-screen-active .app {
+  padding: 8px;
+}
+
+body.mobile-screen-active .tab-panel {
+  display: none;
+}
+
+body.mobile-screen-active #mobileTab {
+  display: block;
+}
+
 .mobile-panel-head {
   align-items: center;
   background: linear-gradient(135deg, var(--navy), var(--teal));
@@ -1137,14 +1160,9 @@ h1 {
   padding: 16px;
 }
 
-.mobile-panel-head h2 {
-  color: #fff;
-  font-size: 30px;
-  line-height: 1;
-  margin: 0;
-}
-
-.mobile-main-page-button {
+.mobile-main-page-button,
+.mobile-install-button,
+.mobile-notify-button {
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
@@ -1156,8 +1174,33 @@ h1 {
   padding: 0 12px;
 }
 
-.mobile-main-page-button:hover {
+.mobile-main-page-button:hover,
+.mobile-install-button:hover,
+.mobile-notify-button:hover {
   background: rgba(255, 255, 255, 0.24);
+}
+
+.mobile-reminder-control {
+  color: rgba(255, 255, 255, 0.8);
+  display: grid;
+  flex: 1 1 150px;
+  font-size: 9px;
+  font-weight: 900;
+  gap: 3px;
+  max-width: 190px;
+  text-transform: uppercase;
+}
+
+.mobile-reminder-control select {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 34px;
+  padding: 0 10px;
+  width: 100%;
 }
 
 .mobile-settings {
@@ -1188,6 +1231,15 @@ h1 {
   min-height: 38px;
   padding: 0 9px;
   width: 100%;
+}
+
+.mobile-status {
+  background: rgba(255, 255, 255, 0.72);
+  border-bottom: 1px solid rgba(216, 224, 232, 0.95);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  padding: 7px 12px;
 }
 
 .mobile-summary {
@@ -2387,15 +2439,25 @@ tbody tr.week-orange .cell-select {
 
   .mobile-panel-head {
     align-items: center;
+    flex-wrap: wrap;
     padding: 11px;
   }
 
-  .mobile-panel-head h2 {
-    font-size: 26px;
+  .mobile-main-page-button,
+  .mobile-install-button,
+  .mobile-notify-button {
+    flex: 1 1 calc(33.333% - 6px);
+    padding: 0 8px;
   }
 
   .mobile-summary {
     justify-content: flex-start;
+    width: 100%;
+  }
+
+  .mobile-reminder-control {
+    flex: 1 1 100%;
+    max-width: none;
     width: 100%;
   }
 

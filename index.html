@@ -4,7 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Otago Pilot Roster 2026-27</title>
-    <link rel="stylesheet" href="styles.css?v=20260526-one-project-mobile-1" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FPS Roster" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="FPS%20Roster/icon.svg" />
+    <link rel="apple-touch-icon" href="FPS%20Roster/icon.svg" />
+    <link rel="stylesheet" href="styles.css?v=20260526-mobile-clean-1" />
   </head>
   <body>
     <main class="app">
@@ -301,11 +307,19 @@
       <section class="tab-panel" id="mobileTab">
         <section class="mobile-panel" aria-label="Mobile vessel schedule">
           <header class="mobile-panel-head">
-            <div>
-              <p class="eyebrow">Mobile Version</p>
-              <h2>FPS Roster</h2>
-            </div>
             <button class="mobile-main-page-button" id="mobileMainPageButton" type="button">Main Page</button>
+            <button class="mobile-install-button" id="mobileInstallButton" type="button">Install App</button>
+            <button class="mobile-notify-button" id="mobileNotifyButton" type="button">Notifications</button>
+            <label class="mobile-reminder-control">
+              Reminder
+              <select id="mobileReminderSelect">
+                <option value="0">Off</option>
+                <option value="72">3 days before</option>
+                <option value="48">2 days before</option>
+                <option value="24">1 day before</option>
+                <option value="1">1 hour before</option>
+              </select>
+            </label>
           </header>
           <div class="mobile-settings">
             <label>
@@ -321,6 +335,7 @@
               <select id="mobileMonthSelect"></select>
             </label>
           </div>
+          <div class="mobile-status" id="mobileStatus">Mobile roster ready</div>
           <div class="mobile-summary" id="mobileSummary"></div>
           <div class="mobile-vessel-list" id="mobileVesselList"></div>
         </section>
@@ -493,6 +508,6 @@
     <script src="shared-store.js?v=20260523-events-1"></script>
     <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
     <script src="ship-specs.js?v=20260524-ship-specs-1"></script>
-    <script src="script.js?v=20260526-one-project-mobile-1"></script>
+    <script src="script.js?v=20260526-mobile-clean-1"></script>
   </body>
 </html>

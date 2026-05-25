@@ -1,0 +1,17 @@
+{
+  "name": "FPS Roster",
+  "short_name": "FPS Roster",
+  "start_url": "./index.html?tab=mobile",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf3f5",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "FPS%20Roster/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
