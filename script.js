@@ -175,6 +175,9 @@ const mobileTab = document.querySelector("#mobileTab");
 const mobileSummary = document.querySelector("#mobileSummary");
 const mobileVesselList = document.querySelector("#mobileVesselList");
 const mobilePilotSelect = document.querySelector("#mobilePilotSelect");
+const mobileSeasonSelect = document.querySelector("#mobileSeasonSelect");
+const mobileMonthSelect = document.querySelector("#mobileMonthSelect");
+const mobileMainPageButton = document.querySelector("#mobileMainPageButton");
 const workbookTab = document.querySelector("#workbookTab");
 const workbookBody = document.querySelector("#workbookBody");
 const workbookSummary = document.querySelector("#workbookSummary");
@@ -492,6 +495,8 @@ function rebuildRosterPreservingScroll() {
 }
 
 function applyDataChangeToActiveViews({ rows = false, counts = false, records = false } = {}) {
+  if (rows) buildMobileMonthSelect();
+
   if (activeTabName === "roster") {
     rebuildRosterPreservingScroll();
   } else if (rows || counts) {
@@ -917,6 +922,8 @@ async function applySnapshot(snapshot) {
   buildHeader();
   buildPilotRecordSelect();
   buildMobilePilotSelect();
+  buildMobileSeasonSelect();
+  buildMobileMonthSelect();
   updateSeasonTitle();
   buildMonthSelect();
   rebuildRosterPreservingScroll();
@@ -985,6 +992,8 @@ async function masterClearData() {
     buildHeader();
     buildPilotRecordSelect();
     buildMobilePilotSelect();
+    buildMobileSeasonSelect();
+    buildMobileMonthSelect();
     renderWorkbook();
     renderPrintItems();
     renderMobileVersion();
@@ -1243,12 +1252,16 @@ function setRosterSeason(startYear) {
   selectedSeasonStart = startYear;
   rosterStart = seasonStartDate(startYear);
   rosterEnd = seasonEndDate(startYear);
+  if (seasonSelect.value !== String(startYear)) seasonSelect.value = String(startYear);
+  if (mobileSeasonSelect && mobileSeasonSelect.value !== String(startYear)) mobileSeasonSelect.value = String(startYear);
   invalidateVesselRenderCache();
   updateSeasonTitle();
   buildMonthSelect();
+  buildMobileMonthSelect();
   if (activeTabName === "roster") rebuildRosterPreservingScroll();
   else rosterNeedsRebuild = true;
   if (printItemsTab.classList.contains("active")) renderPrintItems();
+  if (mobileTab.classList.contains("active")) renderMobileVersion();
   scrollToDate(dateKey(rosterStart));
 }
 
@@ -1613,6 +1626,35 @@ function buildMobilePilotSelect() {
     ${pilots.map((pilot) => `<option value="${pilot.code}">${pilot.code} - ${escapeHtml(pilot.name)}</option>`).join("")}
   `;
   mobilePilotSelect.value = [...mobilePilotSelect.options].some((option) => option.value === current) ? current : "ALL";
+}
+
+function buildMobileSeasonSelect() {
+  if (!mobileSeasonSelect) return;
+  mobileSeasonSelect.innerHTML = seasonStarts
+    .map((startYear) => `<option value="${startYear}">${seasonLabel(startYear)}</option>`)
+    .join("");
+  mobileSeasonSelect.value = String(selectedSeasonStart);
+}
+
+function buildMobileMonthSelect() {
+  if (!mobileMonthSelect) return;
+  const current = mobileMonthSelect.value || "ALL";
+  const months = new Set(["ALL"]);
+  vesselRows.forEach((row) => {
+    const rosterDate = shipRosterDate(row);
+    if (rosterDate && rosterDate >= rosterStart && rosterDate <= rosterEnd) {
+      months.add(`${rosterDate.getFullYear()}-${String(rosterDate.getMonth() + 1).padStart(2, "0")}`);
+    }
+  });
+  mobileMonthSelect.innerHTML = [...months]
+    .map((month) => `<option value="${month}">${month === "ALL" ? "All months" : formatMonth(monthStartFromKey(month))}</option>`)
+    .join("");
+  mobileMonthSelect.value = [...mobileMonthSelect.options].some((option) => option.value === current) ? current : "ALL";
+}
+
+function monthStartFromKey(monthKey) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Date(year, month - 1, 1);
 }
 
 function renderPilotRecords() {
@@ -2098,11 +2140,16 @@ function printableVesselItems() {
 
 function mobileVesselItems() {
   const selectedPilot = mobilePilotSelect.value || "ALL";
+  const selectedMonth = mobileMonthSelect?.value || "ALL";
   return vesselRows
     .map((row) => {
       const rosterDate = shipRosterDate(row);
       if (!vesselClean(row.vessel) || !rosterDate || rosterDate < rosterStart || rosterDate > rosterEnd) {
         return null;
+      }
+      if (selectedMonth !== "ALL") {
+        const monthKey = `${rosterDate.getFullYear()}-${String(rosterDate.getMonth() + 1).padStart(2, "0")}`;
+        if (monthKey !== selectedMonth) return null;
       }
 
       const assigned = vesselPilotsForRow(row).filter(Boolean);
@@ -2681,6 +2728,7 @@ seasonSelect.addEventListener("change", () => {
 });
 saveVersionButton.addEventListener("click", saveRosterVersion);
 mobileShortcutButton.addEventListener("click", () => switchTab("mobile"));
+mobileMainPageButton.addEventListener("click", () => switchTab("workbook"));
 masterClearButton.addEventListener("click", masterClearData);
 monthSelect.addEventListener("change", () => {
   scrollToDate(monthSelect.value);
@@ -2691,6 +2739,8 @@ recordTabs.forEach((button) => {
 });
 pilotRecordSelect.addEventListener("change", renderPilotRecords);
 mobilePilotSelect.addEventListener("change", renderMobileVersion);
+mobileSeasonSelect.addEventListener("change", () => setRosterSeason(Number(mobileSeasonSelect.value)));
+mobileMonthSelect.addEventListener("change", renderMobileVersion);
 eventRefreshButton.addEventListener("click", () => refreshEventLog());
 eventClearButton.addEventListener("click", () => clearAllEvents());
 workbookBody.addEventListener("click", handleWorkbookActionClick);
@@ -2784,8 +2834,10 @@ buildHeader();
 buildPilotRecordSelect();
 buildMobilePilotSelect();
 buildSeasonSelect();
+buildMobileSeasonSelect();
 updateSeasonTitle();
 buildMonthSelect();
+buildMobileMonthSelect();
 switchTab(preferredInitialTab());
 refreshShipSpecs({ seedIfMissing: true });
 refreshSharedState();
