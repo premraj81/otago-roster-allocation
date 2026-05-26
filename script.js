@@ -641,8 +641,8 @@ async function refreshSharedState() {
 
     if (rowsChanged || countsChanged || recordsChanged) {
       applyDataChangeToActiveViews({ rows: rowsChanged, counts: countsChanged, records: recordsChanged });
-      if (initialSharedRefreshComplete && (rowsChanged || recordsChanged)) {
-        showMobileNotification("FPS Roster updated", "Master roster data has changed.");
+      if (initialSharedRefreshComplete && activeTabName === "mobile" && (rowsChanged || recordsChanged)) {
+        updateMobileStatus("Roster updated. Press Push Notification if you want an alert.");
       }
     }
   } catch (error) {
@@ -2254,8 +2254,20 @@ function renderMobileVersion() {
 }
 
 async function installMobileApp() {
+  const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone;
+  if (standalone) {
+    updateMobileStatus("App is already installed.");
+    return;
+  }
   if (!mobileInstallPromptEvent) {
-    updateMobileStatus("Use your browser menu to Add to Home Screen.");
+    const ua = navigator.userAgent.toLowerCase();
+    if (/iphone|ipad|ipod/.test(ua)) {
+      updateMobileStatus("iPhone: tap Share, then Add to Home Screen.");
+    } else if (/android/.test(ua)) {
+      updateMobileStatus("Android: open Chrome menu, then Install app or Add to Home screen.");
+    } else {
+      updateMobileStatus("Use the browser install icon, or menu > Install app.");
+    }
     return;
   }
   mobileInstallPromptEvent.prompt();
@@ -2264,13 +2276,17 @@ async function installMobileApp() {
   mobileInstallPromptEvent = null;
 }
 
-async function enableMobileNotifications() {
+async function requestMobileNotificationPermission() {
   if (!("Notification" in window)) {
     updateMobileStatus("Notifications are not supported on this device.");
-    return;
+    return false;
   }
-  const permission = await Notification.requestPermission();
-  updateMobileStatus(permission === "granted" ? "Notifications enabled" : "Notifications not enabled");
+  const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+  if (permission !== "granted") {
+    updateMobileStatus("Notifications not enabled.");
+    return false;
+  }
+  return true;
 }
 
 function showMobileNotification(title, body) {
@@ -2282,6 +2298,27 @@ function showMobileNotification(title, body) {
     return;
   }
   new Notification(title, { body, icon: "FPS%20Roster/icon.svg" });
+}
+
+function latestEventForNotification() {
+  const events = [...(eventLog.events || [])].filter((event) => event.title || event.details);
+  events.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return events[0] || null;
+}
+
+async function pushLatestMobileNotification() {
+  await refreshEventLog();
+  const event = latestEventForNotification();
+  if (!event) {
+    updateMobileStatus("No event changes recorded yet.");
+    return;
+  }
+  const enabled = await requestMobileNotificationPermission();
+  if (!enabled) return;
+  const when = formatEventTime(event.createdAt);
+  const detail = [event.details, when].filter(Boolean).join(" - ");
+  showMobileNotification(event.title || "FPS Roster updated", detail || "Roster data changed.");
+  updateMobileStatus(`Notification sent: ${event.title || "latest change"}`);
 }
 
 function scheduleMobileReminders(items = mobileVesselItems()) {
@@ -2830,7 +2867,7 @@ saveVersionButton.addEventListener("click", saveRosterVersion);
 mobileShortcutButton.addEventListener("click", () => switchTab("mobile"));
 mobileMainPageButton.addEventListener("click", () => switchTab("workbook"));
 mobileInstallButton.addEventListener("click", installMobileApp);
-mobileNotifyButton.addEventListener("click", enableMobileNotifications);
+mobileNotifyButton.addEventListener("click", pushLatestMobileNotification);
 masterClearButton.addEventListener("click", masterClearData);
 monthSelect.addEventListener("change", () => {
   scrollToDate(monthSelect.value);
@@ -2848,6 +2885,7 @@ mobileReminderSelect.addEventListener("change", () => {
   prefs.reminderHours = mobileReminderSelect.value;
   saveMobilePrefs(prefs);
   scheduleMobileReminders();
+  if (mobileReminderSelect.value !== "0") requestMobileNotificationPermission();
   updateMobileStatus(mobileReminderSelect.value === "0" ? "Reminders off" : "Reminder saved");
 });
 eventRefreshButton.addEventListener("click", () => refreshEventLog());
