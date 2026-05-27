@@ -189,6 +189,15 @@ const mobileStatus = document.querySelector("#mobileStatus");
 const workbookTab = document.querySelector("#workbookTab");
 const workbookBody = document.querySelector("#workbookBody");
 const workbookSummary = document.querySelector("#workbookSummary");
+const workbookServiceFilter = document.querySelector("#workbookServiceFilter");
+const workbookCompanyFilter = document.querySelector("#workbookCompanyFilter");
+const workbookFromToFilter = document.querySelector("#workbookFromToFilter");
+const workbookPilotFilter = document.querySelector("#workbookPilotFilter");
+const workbookStewartFilter = document.querySelector("#workbookStewartFilter");
+const workbookEmbarkFilter = document.querySelector("#workbookEmbarkFilter");
+const workbookDisembarkFilter = document.querySelector("#workbookDisembarkFilter");
+const workbookDirectionFilter = document.querySelector("#workbookDirectionFilter");
+const workbookClearFilters = document.querySelector("#workbookClearFilters");
 const workbookVesselModal = document.querySelector("#workbookVesselModal");
 const workbookVesselForm = document.querySelector("#workbookVesselForm");
 const workbookModalTitle = document.querySelector("#workbookModalTitle");
@@ -1620,12 +1629,13 @@ function renderPrintItems() {
   printItemsBody.innerHTML = items
     .map((item) => `
       <tr>
-        <td>${escapeHtml(formatDate(item.date))}</td>
         <td>${escapeHtml(item.vessel)}</td>
-        <td>${escapeHtml(item.fromTo || "-")}</td>
+        <td>${escapeHtml(formatDate(item.date))}</td>
         <td class="${item.company === "South Port" ? "company-south-port" : item.company === "Port Otago" ? "company-port-otago" : "company-unassigned"}">
           ${escapeHtml(item.company || "Unallocated")}
         </td>
+        <td>${escapeHtml(item.direction || "-")}</td>
+        <td>${escapeHtml(item.fromTo || "-")}</td>
       </tr>
     `)
     .join("");
@@ -1641,7 +1651,7 @@ function renderPrintItems() {
 
 function buildPilotRecordSelect() {
   const current = pilotRecordSelect.value || pilots[0]?.code || "";
-  pilotRecordSelect.innerHTML = pilots
+  pilotRecordSelect.innerHTML = `<option value="ALL">All pilots</option>` + pilots
     .map((pilot) => `<option value="${pilot.code}">${pilot.code} - ${escapeHtml(pilot.name)}</option>`)
     .join("");
   if ([...pilotRecordSelect.options].some((option) => option.value === current)) {
@@ -1691,15 +1701,15 @@ function renderPilotRecords() {
   const pilotCode = pilotRecordSelect.value || pilots[0]?.code || "";
   const items = pilotRecordItems(pilotCode);
   const pilot = pilots.find((item) => item.code === pilotCode);
+  const pilotLabel = pilotCode === "ALL" ? "all pilots" : pilot?.code || "this pilot";
 
   pilotRecordsBody.innerHTML = items.length
     ? items
         .map((item) => `
           <tr>
-            <td>${escapeHtml(item.vessel)}</td>
-            <td>${escapeHtml(item.number)}</td>
+            <td>${escapeHtml(item.vesselDisplay)}</td>
+            <td>${escapeHtml(item.pilots)}</td>
             <td>${escapeHtml(item.direction)}</td>
-            <td>${escapeHtml(item.loa)}</td>
             <td>${escapeHtml(item.embark)}</td>
             <td>${escapeHtml(item.fiordlandDate)}</td>
             <td>${escapeHtml(item.disembarkPlace)}</td>
@@ -1708,13 +1718,13 @@ function renderPilotRecords() {
           </tr>
         `)
         .join("")
-    : `<tr><td colspan="9" class="record-empty">No Fiordland vessel records for ${escapeHtml(pilot?.code || "this pilot")}.</td></tr>`;
+    : `<tr><td colspan="8" class="record-empty">No Fiordland vessel records for ${escapeHtml(pilotLabel)}.</td></tr>`;
 
   if (pilotRecordsView.classList.contains("active")) {
     const northCount = items.filter((item) => item.direction === "North Bound").length;
     const southCount = items.filter((item) => item.direction === "South Bound").length;
     printSummary.innerHTML = `
-      <span>Pilot <strong>${escapeHtml(pilot?.code || "-")}</strong></span>
+      <span>Pilot <strong>${escapeHtml(pilotCode === "ALL" ? "All" : pilot?.code || "-")}</strong></span>
       <span>Vessels <strong>${items.length}</strong></span>
       <span>NB <strong>${northCount}</strong></span>
       <span>SB <strong>${southCount}</strong></span>
@@ -1724,15 +1734,22 @@ function renderPilotRecords() {
 
 function pilotRecordItems(pilotCode) {
   return vesselRows
-    .filter((row) => vesselPilotsForRow(row).includes(pilotCode))
+    .filter((row) => pilotCode === "ALL" || vesselPilotsForRow(row).includes(pilotCode))
     .map((row) => {
       const rosterDate = shipRosterDate(row);
       if (!vesselClean(row.vessel) || !rosterDate || rosterDate < rosterStart || rosterDate > rosterEnd) {
         return null;
       }
+      const assignedPilots = vesselPilotsForRow(row).filter((code) => code !== SOUTH_PORT_ALLOCATION);
 
       return {
         vessel: row.vessel || "Unnamed vessel",
+        vesselDisplay: `${row.vessel || "Unnamed vessel"}${vesselLoa(row) ? ` (${vesselLoa(row)}m)` : ""}`,
+        pilot: vesselClean(row.pilot) || assignedPilots[0] || "",
+        trainee: vesselClean(row.trainee) || assignedPilots[1] || "",
+        pilots: [vesselClean(row.pilot) || assignedPilots[0] || "", vesselClean(row.trainee) || assignedPilots[1] || ""]
+          .filter(Boolean)
+          .join(", "),
         direction: vesselCategory(row),
         loa: vesselLoa(row) ? `${vesselLoa(row)}m` : "",
         embark: [vesselClean(row.embark) || "-", formatRecordDate(row.embarkDate, rosterDate)].filter(Boolean).join(" - "),
@@ -1772,8 +1789,10 @@ function switchRecordView(view) {
 }
 
 function renderWorkbook() {
-  const rows = workbookItems();
-  workbookSummary.textContent = `${rows.length} workbook row${rows.length === 1 ? "" : "s"}`;
+  buildWorkbookFilters();
+  const allRows = workbookItems();
+  const rows = filterWorkbookItems(allRows);
+  workbookSummary.textContent = `${rows.length} of ${allRows.length} workbook row${allRows.length === 1 ? "" : "s"}`;
   workbookBody.innerHTML = rows.length
     ? rows
         .map((row) => `
@@ -1781,19 +1800,25 @@ function renderWorkbook() {
             <td>${row.status ? `<span class="workbook-status ${workbookStatusClass(row.status)}">${escapeHtml(row.status)}</span>` : ""}</td>
             <td><span class="workbook-vessel-name">${escapeHtml(row.vessel)}</span></td>
             <td>${escapeHtml(row.company)}</td>
+            <td>${escapeHtml(row.fromTo)}</td>
             <td>${escapeHtml(row.embarkPlace)}</td>
             <td>${escapeHtml(row.embarkDate)}</td>
             <td>${escapeHtml(row.milfordDate)}</td>
+            <td>${escapeHtml(row.etaMilford)}</td>
+            <td>${escapeHtml(row.etdMilford)}</td>
             <td>${escapeHtml(row.disembarkPlace)}</td>
             <td>${escapeHtml(row.disembarkDate)}</td>
+            <td>${escapeHtml(row.nb)}</td>
+            <td>${escapeHtml(row.sb)}</td>
             <td>${escapeHtml(row.service)}</td>
             <td>${escapeHtml(row.pilot)}</td>
             <td>${escapeHtml(row.trainee)}</td>
             <td><span class="workbook-comment-text">${escapeHtml(row.comments)}</span></td>
-            <td>${escapeHtml(row.stewartIsland)}</td>
+            <td class="${row.stewartIsland === "Yes" ? "workbook-stewart-yes" : ""}">${escapeHtml(row.stewartIsland)}</td>
             <td>${escapeHtml(row.lecturer)}</td>
             <td>${escapeHtml(row.driver)}</td>
             <td>${escapeHtml(row.mhDays)}</td>
+            <td>${escapeHtml(row.occupants)}</td>
             <td>${escapeHtml(row.launch)}</td>
             <td>
               <div class="workbook-action-tabs">
@@ -1804,7 +1829,7 @@ function renderWorkbook() {
           </tr>
         `)
         .join("")
-    : `<tr><td colspan="18" class="workbook-empty">No workbook rows available.</td></tr>`;
+    : `<tr><td colspan="24" class="workbook-empty">No workbook rows available.</td></tr>`;
 }
 
 function workbookItems() {
@@ -1813,24 +1838,35 @@ function workbookItems() {
       const rosterDate = shipRosterDate(row);
       if (!vesselClean(row.vessel) && !rosterDate) return null;
       const pilotsForRow = vesselPilotsForRow(row).filter((code) => code !== SOUTH_PORT_ALLOCATION);
+      const direction = row.direction || vesselCategory(row);
+      const directionCode = workbookDirectionCode(direction);
+      const nb = directionCode === "NB" ? "NB" : "";
+      const sb = directionCode === "SB" ? "SB" : "";
       return {
         sourceRow: row.sourceRow,
         status: workbookDisplayStatus(row),
         vessel: vesselClean(row.vessel),
         company: workbookCompany(row),
+        fromTo: vesselClean(row.fromTo),
         embarkPlace: vesselClean(row.embark),
         embarkDate: workbookDate(row.embarkDate, rosterDate),
         milfordDate: workbookDate(row.etaFiordland, rosterDate),
+        etaMilford: workbookTime(row.etaTime || row.etaFiordlandTime || row.eta),
+        etdMilford: workbookTime(row.etdTime || row.etdFiordlandTime || row.etd),
         disembarkPlace: vesselClean(row.disembark),
         disembarkDate: workbookDate(row.disembarkDate),
+        direction,
+        nb,
+        sb,
         service: workbookService(row),
         pilot: vesselClean(row.pilot) || pilotsForRow[0] || "",
         trainee: vesselClean(row.trainee) || pilotsForRow[1] || "",
         comments: workbookComments(row),
-        stewartIsland: vesselClean(row.stewartIsland),
+        stewartIsland: workbookStewartDisplay(row),
         lecturer: vesselClean(row.lecturer),
         driver: vesselClean(row.driver),
         mhDays: vesselClean(row.mhDays),
+        occupants: vesselClean(row.occupants),
         launch: vesselClean(row.launch),
         actions: vesselClean(row.actions),
         agentUpdated: isRecentAgentUpdate(row),
@@ -1839,6 +1875,54 @@ function workbookItems() {
     })
     .filter(Boolean)
     .sort((a, b) => a.sortDate - b.sortDate || a.vessel.localeCompare(b.vessel));
+}
+
+function workbookFilterValues() {
+  return {
+    service: workbookServiceFilter?.value || "",
+    company: workbookCompanyFilter?.value || "",
+    fromTo: workbookFromToFilter?.value || "",
+    pilot: workbookPilotFilter?.value || "",
+    stewart: workbookStewartFilter?.value || "",
+    embark: workbookEmbarkFilter?.value || "",
+    disembark: workbookDisembarkFilter?.value || "",
+    direction: workbookDirectionFilter?.value || "",
+  };
+}
+
+function filterWorkbookItems(rows) {
+  const filters = workbookFilterValues();
+  return rows.filter((row) => {
+    if (filters.service && row.service !== filters.service) return false;
+    if (filters.company && row.company !== filters.company) return false;
+    if (filters.fromTo && row.fromTo !== filters.fromTo) return false;
+    if (filters.pilot && row.pilot !== filters.pilot && row.trainee !== filters.pilot) return false;
+    if (filters.stewart && row.stewartIsland !== filters.stewart) return false;
+    if (filters.embark && row.embarkPlace !== filters.embark) return false;
+    if (filters.disembark && row.disembarkPlace !== filters.disembark) return false;
+    if (filters.direction === "NB" && !row.nb) return false;
+    if (filters.direction === "SB" && !row.sb) return false;
+    return true;
+  });
+}
+
+function buildWorkbookFilters() {
+  const rows = workbookItems();
+  populateWorkbookFilter(workbookCompanyFilter, "All companies", rows.map((row) => row.company));
+  populateWorkbookFilter(workbookFromToFilter, "All from / to", rows.map((row) => row.fromTo));
+  populateWorkbookFilter(workbookPilotFilter, "All pilots", rows.flatMap((row) => [row.pilot, row.trainee]));
+  populateWorkbookFilter(workbookEmbarkFilter, "All embark", rows.map((row) => row.embarkPlace));
+  populateWorkbookFilter(workbookDisembarkFilter, "All disembark", rows.map((row) => row.disembarkPlace));
+}
+
+function populateWorkbookFilter(select, label, values) {
+  if (!select) return;
+  const current = select.value;
+  const unique = [...new Set(values.map(vesselClean).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  select.innerHTML = `<option value="">${escapeHtml(label)}</option>${unique
+    .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+    .join("")}`;
+  select.value = unique.includes(current) ? current : "";
 }
 
 function workbookDisplayStatus(row) {
@@ -1860,6 +1944,15 @@ function workbookService(row) {
 
 function workbookComments(row) {
   return vesselClean(row.notes) || vesselClean(row.comments);
+}
+
+function workbookStewartDisplay(row) {
+  const text = vesselClean(row.stewartIsland);
+  if (!text) return "";
+  const normalized = text.toLowerCase();
+  if (normalized === "yes" || normalized === "y" || normalized.includes("stewart")) return "Yes";
+  if (normalized === "no" || normalized === "n") return "No";
+  return text;
 }
 
 function workbookRowStatusClass(value) {
@@ -1889,6 +1982,17 @@ function workbookDate(value, fallback = null) {
       ? dateOnly(new Date(fallback))
       : null;
   return validDate && !Number.isNaN(validDate.getTime()) ? formatShortDate(validDate) : "";
+}
+
+function workbookTime(value) {
+  return compactTime(value);
+}
+
+function workbookDirectionCode(value) {
+  const normalized = vesselClean(value).toLowerCase().replace(/[^a-z]/g, "");
+  if (normalized.includes("north") || normalized === "nb") return "NB";
+  if (normalized.includes("south") || normalized === "sb") return "SB";
+  return "";
 }
 
 function findVesselRowBySourceRow(sourceRow) {
@@ -1968,6 +2072,7 @@ function openWorkbookEditModal(sourceRow) {
   setModalValue("modalLecturer", row.lecturer);
   selectOptionValue("modalDriver", row.driver);
   setModalValue("modalMhDays", row.mhDays);
+  setModalValue("modalOccupants", row.occupants);
   selectOptionValue("modalLaunch", row.launch);
   setModalValue("modalNotes", row.notes);
   setModalValue("modalPersonalInfo", row.personalInfo);
@@ -2022,6 +2127,7 @@ function modalFormValues() {
     lecturer: vesselClean(modalField("modalLecturer")?.value),
     driver: vesselClean(modalField("modalDriver")?.value),
     mhDays: vesselClean(modalField("modalMhDays")?.value),
+    occupants: vesselClean(modalField("modalOccupants")?.value),
     launch: vesselClean(modalField("modalLaunch")?.value),
     notes: vesselClean(modalField("modalNotes")?.value),
     personalInfo: vesselClean(modalField("modalPersonalInfo")?.value),
@@ -2049,6 +2155,7 @@ async function applyWorkbookVesselEdit(event) {
     ["lecturer", "Lecturer"],
     ["driver", "Driver"],
     ["mhDays", "MH Days"],
+    ["occupants", "Occupants"],
     ["launch", "Launch"],
     ["personalInfo", "Personal information"],
   ];
@@ -2161,6 +2268,7 @@ function printableVesselItems() {
         date: rosterDate,
         vessel: row.vessel || "Unnamed vessel",
         fromTo: vesselClean(row.fromTo),
+        direction: vesselCategory(row),
         company: companyForVesselRow(row),
       };
     })
@@ -2887,6 +2995,29 @@ mobileReminderSelect.addEventListener("change", () => {
   scheduleMobileReminders();
   if (mobileReminderSelect.value !== "0") requestMobileNotificationPermission();
   updateMobileStatus(mobileReminderSelect.value === "0" ? "Reminders off" : "Reminder saved");
+});
+[
+  workbookServiceFilter,
+  workbookCompanyFilter,
+  workbookFromToFilter,
+  workbookPilotFilter,
+  workbookStewartFilter,
+  workbookEmbarkFilter,
+  workbookDisembarkFilter,
+  workbookDirectionFilter,
+].forEach((filter) => {
+  filter?.addEventListener("change", renderWorkbook);
+});
+workbookClearFilters.addEventListener("click", () => {
+  workbookServiceFilter.value = "";
+  workbookCompanyFilter.value = "";
+  workbookFromToFilter.value = "";
+  workbookPilotFilter.value = "";
+  workbookStewartFilter.value = "";
+  workbookEmbarkFilter.value = "";
+  workbookDisembarkFilter.value = "";
+  workbookDirectionFilter.value = "";
+  renderWorkbook();
 });
 eventRefreshButton.addEventListener("click", () => refreshEventLog());
 eventClearButton.addEventListener("click", () => clearAllEvents());

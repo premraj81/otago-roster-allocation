@@ -385,6 +385,53 @@ h1 {
   justify-items: end;
 }
 
+.workbook-filters {
+  align-items: end;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 248, 251, 0.9));
+  border-bottom: 1px solid rgba(202, 211, 220, 0.85);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(8, minmax(92px, 1fr)) 64px;
+  padding: 10px 12px;
+}
+
+.workbook-filters label {
+  color: var(--muted);
+  display: grid;
+  font-size: 10px;
+  font-weight: 900;
+  gap: 4px;
+  text-transform: uppercase;
+}
+
+.workbook-filters select {
+  background: #fff;
+  border: 1px solid rgba(202, 211, 220, 0.95);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 850;
+  min-height: 32px;
+  padding: 0 8px;
+  width: 100%;
+}
+
+.workbook-filter-clear {
+  background: #fff;
+  border: 1px solid rgba(46, 96, 146, 0.24);
+  border-radius: 999px;
+  color: #2e6092;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 900;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.workbook-filter-clear:hover {
+  background: #f2f7fc;
+}
+
 .workbook-scroll-note {
   color: var(--muted);
   font-size: 11px;
@@ -505,16 +552,16 @@ h1 {
 
 .workbook-table {
   contain: layout paint;
-  min-width: 1450px;
+  min-width: 1480px;
 }
 
 .workbook-table th,
 .workbook-table td {
   border-bottom: 1px solid #d7e0e8;
   border-right: 1px solid #e6edf2;
-  font-size: 11px;
-  min-width: 76px;
-  padding: 5px 6px;
+  font-size: 9px;
+  min-width: 48px;
+  padding: 4px 4px;
   white-space: nowrap;
 }
 
@@ -526,6 +573,9 @@ h1 {
 .workbook-table th {
   background: linear-gradient(180deg, #17324a, #10283d);
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+  font-size: 9px;
+  line-height: 1.05;
+  text-align: center;
 }
 
 .workbook-table tbody tr:nth-child(even) td {
@@ -539,33 +589,100 @@ h1 {
 
 .workbook-table th:nth-child(2),
 .workbook-table td:nth-child(2) {
-  min-width: 180px;
+  min-width: 126px;
+  max-width: 150px;
+  white-space: normal;
 }
 
-.workbook-table th:nth-child(9),
-.workbook-table td:nth-child(9),
+.workbook-table th:nth-child(3),
+.workbook-table td:nth-child(3) {
+  min-width: 92px;
+  max-width: 120px;
+  white-space: normal;
+}
+
+.workbook-table th:nth-child(4),
+.workbook-table td:nth-child(4),
+.workbook-table th:nth-child(5),
+.workbook-table td:nth-child(5),
 .workbook-table th:nth-child(10),
-.workbook-table td:nth-child(10),
-.workbook-table th:nth-child(11),
-.workbook-table td:nth-child(11) {
+.workbook-table td:nth-child(10) {
+  min-width: 70px;
+  max-width: 86px;
+  white-space: normal;
+}
+
+.workbook-table th:nth-child(12),
+.workbook-table td:nth-child(12),
+.workbook-table th:nth-child(13),
+.workbook-table td:nth-child(13),
+.workbook-table th:nth-child(14),
+.workbook-table td:nth-child(14),
+.workbook-table th:nth-child(15),
+.workbook-table td:nth-child(15),
+.workbook-table th:nth-child(16),
+.workbook-table td:nth-child(16) {
   min-width: 54px;
   max-width: 66px;
   text-align: center;
 }
 
-.workbook-table th:nth-child(12),
-.workbook-table td:nth-child(12) {
-  min-width: 150px;
-  max-width: 190px;
+.workbook-table th:nth-child(1),
+.workbook-table td:nth-child(1) {
+  min-width: 62px;
+  max-width: 72px;
+}
+
+.workbook-table th:nth-child(8),
+.workbook-table td:nth-child(8) {
+  min-width: 44px;
+  max-width: 54px;
+  text-align: center;
+}
+
+.workbook-table th:nth-child(9),
+.workbook-table td:nth-child(9) {
+  min-width: 44px;
+  max-width: 54px;
+  text-align: center;
+}
+
+.workbook-table th:nth-child(10),
+.workbook-table td:nth-child(10),
+.workbook-table th:nth-child(18),
+.workbook-table td:nth-child(18) {
+  min-width: 58px;
+  max-width: 70px;
+  text-align: center;
+}
+
+.workbook-table th:nth-child(17),
+.workbook-table td:nth-child(17) {
+  min-width: 112px;
+  max-width: 138px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.workbook-table th:nth-child(19),
+.workbook-table td:nth-child(19),
+.workbook-table th:nth-child(21),
+.workbook-table td:nth-child(21),
+.workbook-table th:nth-child(22),
+.workbook-table td:nth-child(22) {
+  max-width: 92px;
+  min-width: 76px;
+  overflow-wrap: anywhere;
   white-space: normal;
 }
 
 .workbook-comment-text {
   color: #44515f;
   display: -webkit-box;
-  font-size: 10px;
+  font-size: 8.5px;
   line-height: 1.25;
-  max-height: 38px;
+  max-height: 32px;
+  overflow-wrap: anywhere;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -575,11 +692,16 @@ h1 {
   border: 1px solid #cbd6df;
   border-radius: 999px;
   display: inline-block;
-  font-size: 10px;
+  font-size: 7.5px;
   font-weight: 900;
   line-height: 1;
-  padding: 4px 7px;
+  padding: 3px 4px;
   white-space: nowrap;
+}
+
+.workbook-stewart-yes {
+  color: #176fca;
+  font-weight: 950;
 }
 
 .workbook-status.status-confirmed {
@@ -633,6 +755,7 @@ h1 {
 }
 
 .workbook-vessel-name {
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -644,12 +767,6 @@ h1 {
   background: #f2f4f7 !important;
   color: #6b7280;
   opacity: 0.78;
-}
-
-.workbook-table tr.workbook-row-south-port td:nth-child(9),
-.workbook-table tr.workbook-row-south-port td:nth-child(10) {
-  color: #b42318;
-  font-weight: 900;
 }
 
 .workbook-action-tabs {
@@ -1004,18 +1121,10 @@ h1 {
   min-width: 190px;
 }
 
-.pilot-record-table th:nth-child(2),
-.pilot-record-table td:nth-child(2) {
-  min-width: 48px;
-  text-align: center;
-}
-
 .pilot-record-table th:nth-child(3),
 .pilot-record-table td:nth-child(3),
-.pilot-record-table th:nth-child(4),
-.pilot-record-table td:nth-child(4),
-.pilot-record-table th:nth-child(9),
-.pilot-record-table td:nth-child(9) {
+.pilot-record-table th:nth-child(8),
+.pilot-record-table td:nth-child(8) {
   min-width: 86px;
 }
 
@@ -1403,19 +1512,19 @@ body.mobile-screen-active #mobileTab {
 }
 
 .company-port-otago {
-  color: #17324a;
+  color: #166534;
   font-weight: 900;
 }
 
 .company-south-port {
-  color: #b42318;
-  font-weight: 900;
-  opacity: 0.7;
+  color: #111827;
+  font-weight: 800;
+  opacity: 1;
 }
 
 .company-unassigned {
-  color: #8a5a14;
-  font-weight: 800;
+  color: #b42318;
+  font-weight: 950;
 }
 
 @media print {
@@ -2419,6 +2528,10 @@ tbody tr.week-orange .cell-select {
 
   .vessel-panel {
     max-height: 420px;
+  }
+
+  .workbook-filters {
+    grid-template-columns: 1fr;
   }
 
   .vessel-form-grid,

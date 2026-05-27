@@ -10,7 +10,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icon-192.png" />
     <link rel="apple-touch-icon" href="icon-192.png" />
-    <link rel="stylesheet" href="styles.css?v=20260526-mobile-notify-1" />
+    <link rel="stylesheet" href="styles.css?v=20260527-workbook-filter-polish-1" />
   </head>
   <body>
     <main class="app">
@@ -199,10 +199,11 @@
                 <table class="print-table">
                   <thead>
                     <tr>
-                      <th>Date</th>
                       <th>Vessel Name</th>
-                      <th>From / To</th>
+                      <th>Date</th>
                       <th>Company</th>
+                      <th>Direction</th>
+                      <th>From / To</th>
                     </tr>
                   </thead>
                   <tbody id="printItemsBody"></tbody>
@@ -215,9 +216,8 @@
                   <thead>
                     <tr>
                       <th>Vessel Name</th>
-                      <th>No.</th>
+                      <th>Pilots</th>
                       <th>Direction</th>
-                      <th>LOA</th>
                       <th>Embark Place &amp; Date</th>
                       <th>Date at Fiordland</th>
                       <th>Disembark Place</th>
@@ -245,6 +245,53 @@
               <div class="workbook-scroll-note">Scroll right for all columns</div>
             </div>
           </header>
+          <div class="workbook-filters" aria-label="Workbook filters">
+            <label>
+              Filters
+              <select id="workbookServiceFilter">
+                <option value="">All services</option>
+                <option value="FPS">FPS</option>
+                <option value="SP">SP</option>
+              </select>
+            </label>
+            <label>
+              Company
+              <select id="workbookCompanyFilter"></select>
+            </label>
+            <label>
+              From / To
+              <select id="workbookFromToFilter"></select>
+            </label>
+            <label>
+              Pilot
+              <select id="workbookPilotFilter"></select>
+            </label>
+            <label>
+              Stewart Island
+              <select id="workbookStewartFilter">
+                <option value="">All Stewart</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </label>
+            <label>
+              Embark
+              <select id="workbookEmbarkFilter"></select>
+            </label>
+            <label>
+              Disembark
+              <select id="workbookDisembarkFilter"></select>
+            </label>
+            <label>
+              Direction
+              <select id="workbookDirectionFilter">
+                <option value="">NB and SB</option>
+                <option value="NB">NB</option>
+                <option value="SB">SB</option>
+              </select>
+            </label>
+            <button class="workbook-filter-clear" id="workbookClearFilters" type="button">Clear</button>
+          </div>
           <div class="workbook-table-wrap">
             <table class="workbook-table">
               <thead>
@@ -252,19 +299,25 @@
                   <th>Status</th>
                   <th>Vessel</th>
                   <th>Company</th>
-                  <th>Embark Place</th>
+                  <th>From / To</th>
+                  <th>Embark<br />Place</th>
                   <th>Embark Date</th>
                   <th>Milford Date</th>
-                  <th>Disembark Place</th>
+                  <th>ETA<br />Milford</th>
+                  <th>ETD<br />Milford</th>
+                  <th>Disembark<br />Place</th>
                   <th>Disembark Date</th>
+                  <th>NB</th>
+                  <th>SB</th>
                   <th>Service</th>
                   <th>Pilot</th>
                   <th>Trainee</th>
                   <th>Comments</th>
-                  <th>Stewart Island</th>
+                  <th>Stewart<br />Island</th>
                   <th>Lecturer</th>
                   <th>Driver</th>
                   <th>MH Days</th>
+                  <th>Occupants</th>
                   <th>Launch</th>
                   <th>Actions</th>
                 </tr>
@@ -387,7 +440,8 @@
                   <option value="Yes">Yes</option>
                 </select>
               </label>
-              <label>Milford House Days<input id="modalMhDays" type="number" min="0" step="1" /></label>
+              <label>Milford House Days<input id="modalMhDays" type="text" placeholder="Notes" /></label>
+              <label>Occupants<input id="modalOccupants" type="text" placeholder="Names / notes" /></label>
               <label>Launch Required
                 <select id="modalLaunch">
                   <option value=""></option>
@@ -508,6 +562,6 @@
     <script src="shared-store.js?v=20260523-events-1"></script>
     <script src="vessel-data.js?v=20260522-nb-embark-date-2"></script>
     <script src="ship-specs.js?v=20260524-ship-specs-1"></script>
-    <script src="script.js?v=20260526-mobile-notify-1"></script>
+    <script src="script.js?v=20260527-workbook-filter-polish-1"></script>
   </body>
 </html>
